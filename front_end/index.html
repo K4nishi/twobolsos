@@ -2,166 +2,151 @@
 <html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Finance SaaS V8</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Finance SaaS V9</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; }
-        .card-negocio { background: #161b22; border: 1px solid #30363d; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .card-negocio:hover { border-color: #58a6ff; transform: translateY(-3px); }
-        .text-lucro { color: #3fb950; }
-        .text-preju { color: #f85149; }
-        .kpi-box { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 6px; text-align: center; }
-        .badge-receita { background-color: rgba(63, 185, 80, 0.2); color: #3fb950; border: 1px solid #3fb950; }
-        .badge-despesa { background-color: rgba(248, 81, 73, 0.2); color: #f85149; border: 1px solid #f85149; }
-        .nav-pills .nav-link.active { background-color: #30363d; border-color: #8b949e; }
-        .nav-pills .nav-link { color: #8b949e; }
+        :root { --bg-body: #09090b; --card-bg: #18181b; --glass-border: rgba(255, 255, 255, 0.08); }
+        body { background-color: var(--bg-body); color: #e4e4e7; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
+        .glass-card { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; }
+        .wallet-card { background: linear-gradient(145deg, #1e1e24, #131316); border-radius: 20px; padding: 24px; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.2s; }
+        .wallet-card:active { transform: scale(0.98); }
+        .kpi-card { background: #1f1f23; border-radius: 12px; padding: 12px; border: 1px solid var(--glass-border); text-align: center; }
+        .kpi-value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+        .btn-mobile-lg { padding: 14px; border-radius: 12px; font-weight: 600; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-success-soft { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .btn-danger-soft { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--glass-border); }
+        .trans-date { font-size: 0.75rem; color: #71717a; }
+        .trans-val { font-weight: 700; font-size: 0.95rem; }
+        /* Modal Fullscreen Mobile */
+        @media (max-width: 576px) { .modal-dialog { margin: 0; } .modal-content { border-radius: 0; min-height: 100vh; border: none; } }
     </style>
 </head>
-<body class="p-4">
+<body>
 
-    <div id="viewHome" class="container">
-        <div class="d-flex justify-content-between mb-4">
-            <h3>Minhas Carteiras</h3>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovo">+ Novo Negócio</button>
+    <div id="viewHome" class="container py-4 fade-in">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div><h4 class="fw-bold mb-0">Suas Carteiras</h4><small class="text-secondary">Visão Geral</small></div>
+            <button class="btn btn-primary rounded-circle" style="width: 45px; height: 45px;" data-bs-toggle="modal" data-bs-target="#modalNovo"><i class="bi bi-plus-lg"></i></button>
         </div>
         <div id="listaNegocios" class="row g-3"></div>
     </div>
 
-    <div id="viewDash" class="container" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
-            <div class="d-flex align-items-center gap-3">
-                <button onclick="voltarHome()" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></button>
-                <div>
-                    <h3 class="mb-0 d-inline" id="dashTitle">Nome</h3>
-                    <span class="badge bg-secondary ms-2" id="dashTipo">TIPO</span>
-                </div>
-            </div>
-            <div class="d-flex gap-2">
-                <button onclick="abrirModalFixas()" class="btn btn-outline-warning btn-sm"><i class="bi bi-calendar-check"></i> Fixas</button>
-                <button onclick="deletarNegocio()" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+    <div id="viewDash" class="container py-3" style="display: none;">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button onclick="voltarHome()" class="btn btn-outline-secondary rounded-circle" style="width: 40px; height: 40px;"><i class="bi bi-arrow-left"></i></button>
+            <div class="flex-grow-1"><h5 class="mb-0 fw-bold" id="dashTitle">...</h5><span class="badge bg-dark border border-secondary text-secondary" id="dashCategoria">...</span></div>
+            <button onclick="abrirConfig()" class="btn btn-dark rounded-circle border-secondary"><i class="bi bi-gear"></i></button>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-4"><div class="kpi-card border-success border-opacity-25"><div class="text-success small">Entrou</div><div class="kpi-value text-success" id="valRec">R$0</div></div></div>
+            <div class="col-4"><div class="kpi-card border-danger border-opacity-25"><div class="text-danger small">Saiu</div><div class="kpi-value text-danger" id="valDesp">R$0</div></div></div>
+            <div class="col-4"><div class="kpi-card"><div class="small">Saldo</div><div class="kpi-value text-white" id="valSaldo">R$0</div></div></div>
+        </div>
+
+        <div id="painelMotorista" class="glass-card p-3 mb-3" style="display:none;">
+            <div class="d-flex justify-content-between mb-2"><small class="text-secondary fw-bold"><i class="bi bi-speedometer2"></i> RODAGEM</small></div>
+            <div class="row g-2">
+                <div class="col-6 text-center border-end border-secondary"><h5 class="mb-0 text-warning" id="valKm">0</h5><small class="text-muted" style="font-size:0.7rem">KM TOTAL</small></div>
+                <div class="col-6 text-center"><h5 class="mb-0 text-danger" id="valLitros">0</h5><small class="text-muted" style="font-size:0.7rem">LITROS</small></div>
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-4"><div class="kpi-box"><small>Entradas</small><h4 class="text-lucro" id="valRec">R$ 0</h4></div></div>
-            <div class="col-4"><div class="kpi-box"><small>Saídas</small><h4 class="text-preju" id="valDesp">R$ 0</h4></div></div>
-            <div class="col-4"><div class="kpi-box"><small>Saldo</small><h4 class="text-white" id="valSaldo">R$ 0</h4></div></div>
+        <div class="glass-card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="text-secondary small mb-0">Fluxo de Caixa</h6>
+                <select id="chartDays" onchange="atualizarTela()" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto; font-size: 0.8rem;">
+                    <option value="7">7 Dias</option>
+                    <option value="15">15 Dias</option>
+                    <option value="30">30 Dias</option>
+                </select>
+            </div>
+            <div style="height: 180px;"><canvas id="graficoSemanal"></canvas></div>
         </div>
 
-        <div id="painelMotorista" class="row g-3 mb-4" style="display:none;">
-            <div class="col-12"><h6 class="text-secondary border-bottom border-secondary pb-1 small">RODAGEM</h6></div>
-            <div class="col-6"><div class="kpi-box"><i class="bi bi-speedometer2 text-warning"></i><h4 id="valKm">0 km</h4></div></div>
-            <div class="col-6"><div class="kpi-box"><i class="bi bi-fuel-pump text-danger"></i><h4 id="valLitros">0 L</h4></div></div>
+        <div class="row g-2 mb-4">
+            <div class="col-6"><button onclick="abrirModalTrans('receita')" class="btn btn-mobile-lg btn-success-soft"><i class="bi bi-arrow-up-circle-fill"></i> Entrada</button></div>
+            <div class="col-6"><button onclick="abrirModalTrans('despesa')" class="btn btn-mobile-lg btn-danger-soft"><i class="bi bi-arrow-down-circle-fill"></i> Saída</button></div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-8">
-                <div class="kpi-box h-100 p-2"><canvas id="graficoSemanal" style="max-height: 250px;"></canvas></div>
-            </div>
-            <div class="col-md-4 d-flex flex-column gap-2">
-                <button onclick="abrirModalTrans('receita')" class="btn btn-success h-50 fs-5">Nova Receita</button>
-                <button onclick="abrirModalTrans('despesa')" class="btn btn-danger h-50 fs-5">Nova Despesa</button>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Histórico</h5>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active" onclick="filtrarExtrato('todos', this)">Todos</button>
-                <button type="button" class="btn btn-outline-success" onclick="filtrarExtrato('receita', this)">Entradas</button>
-                <button type="button" class="btn btn-outline-danger" onclick="filtrarExtrato('despesa', this)">Saídas</button>
+        <div class="d-flex justify-content-between align-items-end mb-2">
+            <h6 class="text-white mb-0">Histórico</h6>
+            <div class="btn-group btn-group-sm">
+                <button onclick="filtrar('todos')" class="btn btn-outline-secondary active btn-filter" data-f="todos">T</button>
+                <button onclick="filtrar('receita')" class="btn btn-outline-secondary btn-filter" data-f="receita"><i class="bi bi-arrow-up"></i></button>
+                <button onclick="filtrar('despesa')" class="btn btn-outline-secondary btn-filter" data-f="despesa"><i class="bi bi-arrow-down"></i></button>
             </div>
         </div>
-        
-        <div class="table-responsive">
-            <table class="table table-dark table-hover">
-                <thead id="tabelaHead"></thead>
-                <tbody id="tabelaBody"></tbody>
-            </table>
-        </div>
+        <div class="glass-card px-3 py-1" id="listaHistorico"></div>
     </div>
 
-    <div class="modal fade" id="modalNovo" tabindex="-1">
-        <div class="modal-dialog"><div class="modal-content bg-dark border-secondary"><div class="modal-body">
-            <h5>Criar Carteira</h5>
-            <input id="nNome" class="form-control bg-dark text-white mb-2" placeholder="Nome">
-            <select id="nTipo" class="form-select bg-dark text-white mb-3">
-                <option value="PADRAO">Padrão</option>
-                <option value="MOTORISTA">Motorista de App</option>
-            </select>
-            <input id="nCor" type="color" class="form-control mb-3" value="#0d6efd">
-            <button onclick="criarNegocio()" class="btn btn-primary w-100">Criar</button>
-        </div></div></div>
-    </div>
+    <div class="modal fade" id="modalNovo" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Nova Carteira</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
+        <label class="text-secondary small">Nome</label><input id="nNome" class="form-control bg-dark text-white border-secondary mb-3 py-3" placeholder="Ex: Mottu...">
+        <label class="text-secondary small">Tipo</label><select id="nTipo" class="form-select bg-dark text-white border-secondary mb-3 py-3"><option value="PADRAO">Padrão</option><option value="MOTORISTA">Motorista de App</option></select>
+        <label class="text-secondary small">Cor</label><input id="nCor" type="color" class="form-control form-control-color bg-dark border-secondary w-100 mb-4" value="#3b82f6">
+        <button onclick="criarNegocio()" class="btn btn-primary btn-lg w-100">Criar Carteira</button>
+    </div></div></div></div>
 
-    <div class="modal fade" id="modalTrans" tabindex="-1">
-        <div class="modal-dialog"><div class="modal-content bg-dark border-secondary"><div class="modal-body">
-            <h5 id="transTitulo">...</h5>
-            <input type="hidden" id="tTipo">
-            <input id="tDesc" class="form-control bg-dark text-white mb-2" placeholder="Descrição">
-            <input id="tVal" type="number" class="form-control bg-dark text-white mb-2" placeholder="Valor (R$)">
-            <input id="tData" type="date" class="form-control bg-dark text-white mb-3">
-            <div id="inputsDriver" style="display:none;" class="p-2 border border-secondary rounded mb-3">
-                <input id="tKm" type="number" class="form-control bg-dark text-white border-warning mb-2" placeholder="KM Rodado">
-                <input id="tLitros" type="number" class="form-control bg-dark text-white border-danger" placeholder="Litros">
-            </div>
-            <button onclick="salvarTrans()" class="btn btn-primary w-100">Salvar</button>
-        </div></div></div>
-    </div>
+    <div class="modal fade" id="modalTrans" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title" id="transTitulo">Nova Movimentação</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
+        <input type="hidden" id="tTipo">
+        <label class="text-secondary small">Valor</label><div class="input-group mb-3"><span class="input-group-text bg-secondary border-secondary text-white">R$</span><input id="tVal" type="number" class="form-control bg-dark text-white border-secondary py-3 fs-5 fw-bold" placeholder="0.00" inputmode="decimal"></div>
+        <label class="text-secondary small">Descrição</label><input id="tDesc" class="form-control bg-dark text-white border-secondary mb-3 py-3" placeholder="Ex: Gasolina...">
+        <label class="text-secondary small">Data</label><input id="tData" type="date" class="form-control bg-dark text-white border-secondary mb-3 py-3">
+        <div id="inputsDriver" class="p-3 mb-4 rounded border border-secondary bg-black bg-opacity-25" style="display:none;">
+            <div id="divKm" class="mb-3"><label class="text-warning small fw-bold">KM RODADO</label><input id="tKm" type="number" class="form-control bg-dark text-white border-warning py-2" placeholder="0"></div>
+            <div id="divLitros"><label class="text-danger small fw-bold">LITROS ABASTECIDOS</label><input id="tLitros" type="number" class="form-control bg-dark text-white border-danger py-2" placeholder="0"></div>
+        </div>
+        <button onclick="salvarTrans()" class="btn btn-primary btn-lg w-100">Salvar</button>
+    </div></div></div></div>
 
-    <div class="modal fade" id="modalFixas" tabindex="-1">
-        <div class="modal-dialog"><div class="modal-content bg-dark border-secondary"><div class="modal-body">
-            <h5>Gerenciar Contas Fixas</h5>
-            <div class="input-group mb-3">
-                <input id="fNome" class="form-control bg-dark text-white" placeholder="Nome (Ex: Facul)">
-                <input id="fValor" type="number" class="form-control bg-dark text-white" placeholder="R$">
-                <button onclick="criarFixa()" class="btn btn-primary">Add</button>
-            </div>
-            <ul id="listaFixas" class="list-group list-group-flush bg-dark rounded"></ul>
-        </div></div></div>
-    </div>
+    <div class="modal fade" id="modalConfig" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Configurações</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
+        <h6 class="text-white mb-3">Fixas</h6><div class="input-group mb-3"><input id="fNome" class="form-control bg-dark text-white border-secondary" placeholder="Nome"><input id="fValor" type="number" class="form-control bg-dark text-white border-secondary" placeholder="R$"><button onclick="criarFixa()" class="btn btn-outline-light"><i class="bi bi-plus-lg"></i></button></div><ul id="listaFixas" class="list-group list-group-flush rounded mb-5 border border-secondary"></ul>
+        <h6 class="text-danger mb-3">Zona de Perigo</h6><button onclick="deletarNegocio()" class="btn btn-outline-danger w-100 py-3"><i class="bi bi-trash"></i> Excluir Carteira</button>
+    </div></div></div></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const API = "http://127.0.0.1:8000";
         let ATUAL_ID = null;
-        let ATUAL_CATEGORIA = null;
-        let CACHE_DADOS = null; // Guarda os dados para filtrar sem ir no servidor
+        let ATUAL_TIPO = null;
+        let CACHE_DATA = null;
         let CHART = null;
 
         document.getElementById('tData').valueAsDate = new Date();
 
-        // --- HOME ---
         async function carregarHome() {
             document.getElementById('viewHome').style.display='block';
             document.getElementById('viewDash').style.display='none';
-            const res = await fetch(`${API}/negocios`);
-            const lista = await res.json();
-            const div = document.getElementById('listaNegocios');
-            div.innerHTML = "";
-            lista.forEach(n => {
-                div.innerHTML += `
-                    <div class="col-md-4">
-                        <div class="card-negocio p-3" onclick="abrirDash(${n.id})" style="border-left: 5px solid ${n.cor}">
-                            <div class="d-flex justify-content-between"><h5 class="fw-bold">${n.nome}</h5><span class="badge bg-secondary">${n.categoria}</span></div>
-                            <h3 class="mt-3 ${n.saldo>=0?'text-lucro':'text-preju'}">R$ ${n.saldo.toFixed(2)}</h3>
-                        </div>
-                    </div>`;
-            });
+            try {
+                const res = await fetch(`${API}/negocios`);
+                const lista = await res.json();
+                const div = document.getElementById('listaNegocios');
+                div.innerHTML = "";
+                if(lista.length === 0) div.innerHTML = "<div class='text-center text-muted mt-5'>Nenhuma carteira.<br>Crie uma no botão +</div>";
+                lista.forEach(n => {
+                    div.innerHTML += `
+                        <div class="col-md-6 col-lg-4">
+                            <div class="wallet-card" style="--wallet-color: ${n.cor}" onclick="abrirDash(${n.id})">
+                                <div class="d-flex justify-content-between align-items-center mb-2"><h5 class="fw-bold mb-0">${n.nome}</h5><span class="badge bg-dark border border-secondary text-secondary">${n.categoria}</span></div>
+                                <h2 class="mb-0 ${n.saldo>=0?'text-success':'text-danger'}">R$ ${n.saldo.toFixed(2)}</h2>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) { console.error(e); }
         }
 
         async function criarNegocio() {
-            await fetch(`${API}/negocios`, {method:"POST", headers:{"Content-Type":"application/json"}, 
-                body: JSON.stringify({nome:document.getElementById('nNome').value, categoria:document.getElementById('nTipo').value, cor:document.getElementById('nCor').value})});
+            await fetch(`${API}/negocios`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({nome: document.getElementById('nNome').value, categoria: document.getElementById('nTipo').value, cor: document.getElementById('nCor').value})});
             bootstrap.Modal.getInstance(document.getElementById('modalNovo')).hide();
             carregarHome();
         }
 
-        // --- DASHBOARD ---
         async function abrirDash(id) {
             ATUAL_ID = id;
             document.getElementById('viewHome').style.display='none';
@@ -170,159 +155,109 @@
         }
 
         async function atualizarTela() {
-            const res = await fetch(`${API}/negocios/${ATUAL_ID}/dashboard`);
-            CACHE_DADOS = await res.json(); // Salva no Cache Global
-            const n = CACHE_DADOS.negocio;
-            ATUAL_CATEGORIA = n.categoria;
+            // PEGA O VALOR DOS DIAS SELECIONADOS
+            const dias = document.getElementById('chartDays').value;
+            
+            const res = await fetch(`${API}/negocios/${ATUAL_ID}/dashboard?dias=${dias}`);
+            CACHE_DATA = await res.json();
+            const n = CACHE_DATA.negocio;
+            ATUAL_TIPO = n.categoria;
 
-            // UI Geral
             document.getElementById('dashTitle').innerText = n.nome;
-            document.getElementById('dashTipo').innerText = n.categoria;
-            document.getElementById('valRec').innerText = `R$ ${CACHE_DADOS.kpis.receita.toFixed(2)}`;
-            document.getElementById('valDesp').innerText = `R$ ${CACHE_DADOS.kpis.despesa.toFixed(2)}`;
-            document.getElementById('valSaldo').innerText = `R$ ${CACHE_DADOS.kpis.saldo.toFixed(2)}`;
+            document.getElementById('dashCategoria').innerText = n.categoria;
+            document.getElementById('valRec').innerText = `R$ ${CACHE_DATA.kpis.receita.toFixed(0)}`;
+            document.getElementById('valDesp').innerText = `R$ ${CACHE_DATA.kpis.despesa.toFixed(0)}`;
+            document.getElementById('valSaldo').innerText = `R$ ${CACHE_DATA.kpis.saldo.toFixed(2)}`;
 
-            // Motorista
             const pMot = document.getElementById('painelMotorista');
-            if(n.categoria==='MOTORISTA') {
-                pMot.style.display='flex';
-                document.getElementById('valKm').innerText = CACHE_DADOS.kpis.total_km + " km";
-                document.getElementById('valLitros').innerText = CACHE_DADOS.kpis.total_litros + " L";
+            if(n.categoria === 'MOTORISTA') {
+                pMot.style.display='block';
+                document.getElementById('valKm').innerText = CACHE_DATA.kpis.total_km;
+                document.getElementById('valLitros').innerText = CACHE_DATA.kpis.total_litros;
             } else { pMot.style.display='none'; }
 
-            // Gráfico
-            if(CHART) CHART.destroy();
+            renderChart(CACHE_DATA.grafico);
+            renderLista(CACHE_DATA.extrato);
+        }
+
+        function renderChart(dados) {
             const ctx = document.getElementById('graficoSemanal').getContext('2d');
+            if(CHART) CHART.destroy();
             CHART = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: CACHE_DADOS.grafico.labels, datasets: [{label:'Entrada', data:CACHE_DADOS.grafico.receitas, backgroundColor:'#3fb950'}, {label:'Saída', data:CACHE_DADOS.grafico.despesas, backgroundColor:'#f85149'}] },
-                options: { responsive:true, maintainAspectRatio:false, scales:{x:{grid:{display:false}}, y:{grid:{color:'#30363d'}}} }
+                type: 'line',
+                data: {
+                    labels: dados.labels,
+                    datasets: [
+                        { label:'Entrada', data:dados.receitas, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', fill:true, tension:0.4 },
+                        { label:'Saída', data:dados.despesas, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.1)', fill:true, tension:0.4 }
+                    ]
+                },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}} }
             });
-
-            // Renderiza Tabela (Padrão: Todos)
-            renderizarTabela(CACHE_DADOS.extrato);
         }
 
-        // --- FILTROS DE TABELA ---
-        function filtrarExtrato(tipo, btn) {
-            // UI dos botões
-            document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-
-            if (tipo === 'todos') {
-                renderizarTabela(CACHE_DADOS.extrato);
-            } else {
-                const filtrado = CACHE_DADOS.extrato.filter(t => t.tipo === tipo);
-                renderizarTabela(filtrado);
-            }
+        function filtrar(tipo) {
+            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+            event.target.closest('button').classList.add('active');
+            if(tipo === 'todos') renderLista(CACHE_DATA.extrato);
+            else renderLista(CACHE_DATA.extrato.filter(t => t.tipo === tipo));
         }
 
-        function renderizarTabela(lista) {
-            const thead = document.getElementById('tabelaHead');
-            const tbody = document.getElementById('tabelaBody');
-            
-            // Header Dinâmico
-            let h = `<tr><th>Data</th><th>Tipo</th><th>Descrição</th>`;
-            if(ATUAL_CATEGORIA==='MOTORISTA') h += `<th>KM</th><th>Litros</th>`;
-            h += `<th class="text-end">Valor</th><th></th></tr>`;
-            thead.innerHTML = h;
-
-            // Body
-            tbody.innerHTML = "";
+        function renderLista(lista) {
+            const div = document.getElementById('listaHistorico');
+            div.innerHTML = "";
+            if(lista.length === 0) div.innerHTML = "<div class='text-center py-3 text-secondary small'>Sem registros</div>";
             lista.forEach(t => {
-                let badge = t.tipo==='receita' ? '<span class="badge badge-receita">Entrada</span>' : '<span class="badge badge-despesa">Saída</span>';
-                let row = `<tr><td class="text-secondary small">${t.data}</td><td>${badge}</td><td>${t.descricao}</td>`;
-                if(ATUAL_CATEGORIA==='MOTORISTA') {
-                    row += `<td class="text-warning small">${t.km>0?t.km:'-'}</td><td class="text-danger small">${t.litros>0?t.litros:'-'}</td>`;
-                }
-                let cor = t.tipo==='receita'?'text-lucro':'text-preju';
-                row += `<td class="text-end fw-bold ${cor}">R$ ${t.valor.toFixed(2)}</td>
-                        <td class="text-end"><button onclick="deletarTrans(${t.id})" class="btn btn-sm btn-link text-secondary"><i class="bi bi-x-lg"></i></button></td></tr>`;
-                tbody.innerHTML += row;
+                let icone = t.tipo==='receita' ? '<i class="bi bi-arrow-up-right-circle-fill text-success fs-4"></i>' : '<i class="bi bi-arrow-down-left-circle-fill text-danger fs-4"></i>';
+                let corVal = t.tipo==='receita' ? 'text-success' : 'text-danger';
+                let extraInfo = (ATUAL_TIPO==='MOTORISTA' && t.km > 0) ? `<span class="badge bg-warning text-dark ms-2">${t.km}km</span>` : '';
+                div.innerHTML += `
+                    <div class="transaction-item">
+                        <div class="d-flex align-items-center gap-3">
+                            ${icone}
+                            <div><div class="trans-desc text-white">${t.descricao} ${extraInfo}</div><div class="trans-date">${t.data}</div></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="trans-val ${corVal}">R$ ${t.valor.toFixed(2)}</div>
+                            <button onclick="delTrans(${t.id})" class="btn btn-sm text-secondary"><i class="bi bi-x"></i></button>
+                        </div>
+                    </div>`;
             });
         }
 
-        // --- TRANSAÇÕES (SEM REFRESH) ---
         function abrirModalTrans(tipo) {
             document.getElementById('tTipo').value = tipo;
-            document.getElementById('transTitulo').innerText = tipo === 'receita' ? "Nova Receita" : "Nova Despesa";
-            
-            const driverInputs = document.getElementById('inputsDriver');
-            driverInputs.style.display = 'none'; // Reset
-            
-            if(ATUAL_CATEGORIA==='MOTORISTA') {
-                driverInputs.style.display = 'block';
-                // Mostra só o input relevante
-                document.getElementById('tKm').style.display = tipo==='receita' ? 'block' : 'none';
-                document.getElementById('tLitros').style.display = tipo==='despesa' ? 'block' : 'none';
+            document.getElementById('transTitulo').innerText = tipo === 'receita' ? "Entrada" : "Saída";
+            document.getElementById('inputsDriver').style.display = 'none';
+            if(ATUAL_TIPO === 'MOTORISTA') {
+                document.getElementById('inputsDriver').style.display = 'block';
+                document.getElementById('divKm').style.display = tipo==='receita'?'block':'none';
+                document.getElementById('divLitros').style.display = tipo==='despesa'?'block':'none';
             }
             new bootstrap.Modal(document.getElementById('modalTrans')).show();
         }
 
         async function salvarTrans() {
-            await fetch(`${API}/transacoes`, {
-                method:"POST", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({
-                    negocio_id: ATUAL_ID, tipo: document.getElementById('tTipo').value, descricao: document.getElementById('tDesc').value,
-                    valor: document.getElementById('tVal').value, data: document.getElementById('tData').value,
-                    km: document.getElementById('tKm').value || 0, litros: document.getElementById('tLitros').value || 0
-                })
-            });
+            const desc = document.getElementById('tDesc').value; const val = document.getElementById('tVal').value;
+            if(!desc || !val) return alert("Preencha valor e descrição");
+            await fetch(`${API}/transacoes`, {method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({negocio_id: ATUAL_ID, tipo: document.getElementById('tTipo').value, descricao: desc, valor: val, data: document.getElementById('tData').value, km: document.getElementById('tKm').value || 0, litros: document.getElementById('tLitros').value || 0})});
             bootstrap.Modal.getInstance(document.getElementById('modalTrans')).hide();
-            // Limpa inputs
             document.getElementById('tDesc').value=""; document.getElementById('tVal').value=""; document.getElementById('tKm').value=""; document.getElementById('tLitros').value="";
-            atualizarTela(); // A Mágica: Atualiza sem sair
+            atualizarTela();
         }
-
-        async function deletarTrans(id) {
-            if(confirm("Apagar?")) { await fetch(`${API}/transacoes/${id}`, {method:"DELETE"}); atualizarTela(); }
+        async function delTrans(id) { if(confirm("Apagar?")) { await fetch(`${API}/transacoes/${id}`, {method:"DELETE"}); atualizarTela(); } }
+        
+        function abrirConfig() { loadFixas(); new bootstrap.Modal(document.getElementById('modalConfig')).show(); }
+        async function loadFixas() {
+            const res = await fetch(`${API}/negocios/${ATUAL_ID}/fixas`); const lista = await res.json();
+            const ul = document.getElementById('listaFixas'); ul.innerHTML = "";
+            lista.forEach(f => { ul.innerHTML += `<li class="list-group-item bg-dark border-secondary text-white d-flex justify-content-between align-items-center"><span>${f.nome} (R$${f.valor})</span><div><button onclick="pagarFixa(${f.id})" class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i></button><button onclick="delFixa(${f.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></div></li>`; });
         }
-
-        // --- CONTAS FIXAS ---
-        function abrirModalFixas() {
-            carregarFixas();
-            new bootstrap.Modal(document.getElementById('modalFixas')).show();
-        }
-
-        async function carregarFixas() {
-            const res = await fetch(`${API}/negocios/${ATUAL_ID}/fixas`);
-            const lista = await res.json();
-            const ul = document.getElementById('listaFixas');
-            ul.innerHTML = "";
-            lista.forEach(f => {
-                ul.innerHTML += `
-                    <li class="list-group-item bg-dark text-white border-secondary d-flex justify-content-between align-items-center">
-                        <span>${f.nome} (R$ ${f.valor})</span>
-                        <div>
-                            <button onclick="pagarFixa(${f.id})" class="btn btn-sm btn-outline-success" title="Pagar Agora"><i class="bi bi-check-lg"></i> Pagar</button>
-                            <button onclick="deletarFixa(${f.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                        </div>
-                    </li>`;
-            });
-        }
-
-        async function criarFixa() {
-            await fetch(`${API}/fixas`, {method:"POST", headers:{"Content-Type":"application/json"}, 
-                body: JSON.stringify({nome:document.getElementById('fNome').value, valor:document.getElementById('fValor').value, negocio_id:ATUAL_ID})});
-            document.getElementById('fNome').value=""; document.getElementById('fValor').value="";
-            carregarFixas();
-        }
-
-        async function pagarFixa(id) {
-            await fetch(`${API}/fixas/${id}/pagar`, {method:"POST"});
-            alert("Conta paga! Lançada no extrato.");
-            carregarFixas();
-            atualizarTela(); // Atualiza saldo lá atrás
-        }
-
-        async function deletarFixa(id) {
-            await fetch(`${API}/fixas/${id}`, {method:"DELETE"});
-            carregarFixas();
-        }
-
-        async function deletarNegocio() {
-            if(confirm("Apagar carteira inteira?")) { await fetch(`${API}/negocios/${ATUAL_ID}`, {method:"DELETE"}); voltarHome(); }
-        }
+        async function criarFixa() { await fetch(`${API}/fixas`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({nome:document.getElementById('fNome').value, valor:document.getElementById('fValor').value, negocio_id:ATUAL_ID})}); loadFixas(); }
+        async function pagarFixa(id) { await fetch(`${API}/fixas/${id}/pagar`, {method:"POST"}); alert("Pago!"); loadFixas(); atualizarTela(); }
+        async function delFixa(id) { await fetch(`${API}/fixas/${id}`, {method:"DELETE"}); loadFixas(); }
+        async function deletarNegocio() { if(confirm("Apagar carteira?")) { await fetch(`${API}/negocios/${ATUAL_ID}`, {method:"DELETE"}); voltarHome(); } }
         function voltarHome() { document.getElementById('viewDash').style.display='none'; carregarHome(); }
 
         carregarHome();
