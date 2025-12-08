@@ -1,0 +1,12 @@
+# Ignorar arquivos do Python e Ambiente Virtual
+venv/
+__pycache__/
+*.pyc
+
+# Ignorar Banco de Dados (Segurança!)
+*.db
+*.sqlite3
+
+# Ignorar configurações da IDE
+.idea/
+.vscode/
