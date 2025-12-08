@@ -1,199 +1,147 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import date, timedelta
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, Field, Relationship, create_engine, Session, select
 
-# ==========================================
-# 1. CONFIGURAÇÃO E BANCO DE DADOS
-# ==========================================
-
-sqlite_file_name = "financeiro.db"
+# --- CONFIGURAÇÃO ---
+sqlite_file_name = "financeiro_saas.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
-
-# check_same_thread=False é necessário para SQLite com FastAPI
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args)
 
-# ==========================================
-# 2. MODELOS DE DADOS (TABELAS)
-# ==========================================
-
+# --- MODELOS ---
 class Negocio(SQLModel, table=True):
-    """Representa uma Carteira/Negócio (Ex: Mottu, Pessoal, Loja)"""
     id: Optional[int] = Field(default=None, primary_key=True)
     nome: str
-    categoria: str = "PADRAO"  # Opções: 'PADRAO' ou 'MOTORISTA'
-    cor: str = "#0d6efd"       # Cor para o Front-End
-    
-    # Relacionamento: Um negócio tem várias transações
+    categoria: str = "PADRAO"
+    cor: str = "#0d6efd"
     transacoes: List["Transacao"] = Relationship(back_populates="negocio")
+    fixas: List["DespesaFixa"] = Relationship(back_populates="negocio")
 
-class Transacao(SQLModel, table=True):
-    """Representa uma Receita ou Despesa"""
+class DespesaFixa(SQLModel, table=True):
+    """Modelo para contas recorrentes (Faculdade, Spotify, etc)"""
     id: Optional[int] = Field(default=None, primary_key=True)
     negocio_id: int = Field(foreign_key="negocio.id")
-    
+    nome: str
+    valor: float
+    dia_vencimento: int = 1
+    negocio: Optional[Negocio] = Relationship(back_populates="fixas")
+
+class Transacao(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    negocio_id: int = Field(foreign_key="negocio.id")
     descricao: str
     valor: float
-    tipo: str  # 'receita' ou 'despesa'
-    data: date # O Python converte ISO (YYYY-MM-DD) automaticamente
-    
-    # Campos exclusivos para Módulo Motorista (Opcionais)
-    km: Optional[float] = 0.0      # KM Rodado (Geralmente na receita)
-    litros: Optional[float] = 0.0  # Litros Abastecidos (Geralmente na despesa)
-    
+    tipo: str # 'receita' ou 'despesa'
+    data: date
+    km: Optional[float] = 0.0
+    litros: Optional[float] = 0.0
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
 
-# ==========================================
-# 3. INICIALIZAÇÃO DA API
-# ==========================================
-
-app = FastAPI(title="Finance SaaS API", version="Final")
-
-# Configuração de CORS (Permite que o Front-End acesse o Back-End)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Cria as tabelas ao ligar o servidor
-@app.on_event("startup")
-def on_startup():
+def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-# Injeção de Dependência para Sessão do Banco
+app = FastAPI(title="Finance SaaS V8", version="8.0.0")
+
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+)
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
 def get_session():
     with Session(engine) as session:
         yield session
 
-# ==========================================
-# 4. ROTAS: GESTÃO DE NEGÓCIOS
-# ==========================================
-
-@app.post("/negocios", response_model=Negocio)
+# --- ROTAS DE NEGÓCIO ---
+@app.post("/negocios")
 def criar_negocio(n: Negocio, session: Session = Depends(get_session)):
-    session.add(n)
-    session.commit()
-    session.refresh(n)
-    return n
+    session.add(n); session.commit(); session.refresh(n); return n
 
 @app.get("/negocios")
 def listar_negocios(session: Session = Depends(get_session)):
-    """Lista todos os negócios com saldo calculado"""
     negocios = session.exec(select(Negocio)).all()
-    lista_resumo = []
-    
+    lista = []
     for n in negocios:
-        # Cálculo rápido de saldo na listagem
-        receitas = sum(t.valor for t in n.transacoes if t.tipo == 'receita')
-        despesas = sum(t.valor for t in n.transacoes if t.tipo == 'despesa')
-        
-        lista_resumo.append({
-            "id": n.id,
-            "nome": n.nome,
-            "categoria": n.categoria,
-            "cor": n.cor,
-            "saldo": receitas - despesas
-        })
-    return lista_resumo
+        rec = sum(t.valor for t in n.transacoes if t.tipo == 'receita')
+        desp = sum(t.valor for t in n.transacoes if t.tipo == 'despesa')
+        lista.append({"id": n.id, "nome": n.nome, "categoria": n.categoria, "cor": n.cor, "saldo": rec - desp})
+    return lista
 
 @app.delete("/negocios/{id}")
 def deletar_negocio(id: int, session: Session = Depends(get_session)):
     n = session.get(Negocio, id)
-    if not n:
-        raise HTTPException(status_code=404, detail="Negócio não encontrado")
+    if not n: raise HTTPException(404)
+    for t in n.transacoes: session.delete(t)
+    for f in n.fixas: session.delete(f)
+    session.delete(n); session.commit(); return {"ok": True}
+
+# --- ROTAS DE DESPESAS FIXAS (NOVIDADE) ---
+@app.post("/fixas")
+def criar_fixa(f: DespesaFixa, session: Session = Depends(get_session)):
+    session.add(f); session.commit(); session.refresh(f); return f
+
+@app.get("/negocios/{id}/fixas")
+def listar_fixas(id: int, session: Session = Depends(get_session)):
+    return session.exec(select(DespesaFixa).where(DespesaFixa.negocio_id == id)).all()
+
+@app.delete("/fixas/{id}")
+def deletar_fixa(id: int, session: Session = Depends(get_session)):
+    f = session.get(DespesaFixa, id); session.delete(f); session.commit(); return {"ok": True}
+
+@app.post("/fixas/{id}/pagar")
+def pagar_fixa_no_mes(id: int, session: Session = Depends(get_session)):
+    """Pega uma conta fixa e lança como transação HOJE"""
+    f = session.get(DespesaFixa, id)
+    if not f: raise HTTPException(404)
     
-    # Deleta todas as transações antes de deletar o negócio (Limpeza)
-    for t in n.transacoes:
-        session.delete(t)
-        
-    session.delete(n)
+    nova_trans = Transacao(
+        negocio_id=f.negocio_id,
+        descricao=f"{f.nome} (Fixo)",
+        valor=f.valor,
+        tipo="despesa",
+        data=date.today()
+    )
+    session.add(nova_trans)
     session.commit()
-    return {"ok": True}
+    return nova_trans
 
-# ==========================================
-# 5. ROTAS: TRANSAÇÕES (CRUD)
-# ==========================================
-
-@app.post("/transacoes", response_model=Transacao)
-def criar_transacao(t: Transacao, session: Session = Depends(get_session)):
-    # Garante compatibilidade de data se vier como string
-    if isinstance(t.data, str):
-        t.data = date.fromisoformat(t.data)
-        
-    session.add(t)
-    session.commit()
-    session.refresh(t)
-    return t
+# --- ROTAS DE TRANSAÇÃO E DASHBOARD ---
+@app.post("/transacoes")
+def nova_transacao(t: Transacao, session: Session = Depends(get_session)):
+    if isinstance(t.data, str): t.data = date.fromisoformat(t.data)
+    session.add(t); session.commit(); session.refresh(t); return t
 
 @app.delete("/transacoes/{id}")
 def deletar_transacao(id: int, session: Session = Depends(get_session)):
-    t = session.get(Transacao, id)
-    if not t:
-        raise HTTPException(status_code=404, detail="Transação não encontrada")
-    
-    session.delete(t)
-    session.commit()
-    return {"ok": True}
-
-# ==========================================
-# 6. ROTA INTELIGENTE: DASHBOARD
-# ==========================================
+    t = session.get(Transacao, id); session.delete(t); session.commit(); return {"ok": True}
 
 @app.get("/negocios/{id}/dashboard")
-def obter_dashboard(id: int, session: Session = Depends(get_session)):
-    """
-    Retorna TUDO que o front precisa de uma vez só:
-    KPIs, Gráficos e Extrato atualizado.
-    """
+def get_dashboard(id: int, session: Session = Depends(get_session)):
     negocio = session.get(Negocio, id)
-    if not negocio:
-        raise HTTPException(status_code=404, detail="Negócio não encontrado")
+    transacoes = session.exec(select(Transacao).where(Transacao.negocio_id == id).order_by(Transacao.data.desc())).all()
     
-    # Busca todas as transações desse negócio (Mais recentes primeiro)
-    query = select(Transacao).where(Transacao.negocio_id == id).order_by(Transacao.data.desc())
-    transacoes = session.exec(query).all()
+    rec = sum(t.valor for t in transacoes if t.tipo == 'receita')
+    desp = sum(t.valor for t in transacoes if t.tipo == 'despesa')
+    km = sum(t.km for t in transacoes if t.km)
+    lit = sum(t.litros for t in transacoes if t.litros)
     
-    # 1. Cálculos Gerais (Financeiro)
-    total_receita = sum(t.valor for t in transacoes if t.tipo == 'receita')
-    total_despesa = sum(t.valor for t in transacoes if t.tipo == 'despesa')
-    
-    # 2. Cálculos Específicos (Motorista)
-    total_km = sum(t.km for t in transacoes if t.km)
-    total_litros = sum(t.litros for t in transacoes if t.litros)
-    
-    # 3. Montagem do Gráfico Semanal (Últimos 7 dias)
+    # Gráfico Semanal
     hoje = date.today()
-    grafico_data = {"labels": [], "receitas": [], "despesas": []}
-    
+    grafico = {"labels": [], "receitas": [], "despesas": []}
     for i in range(6, -1, -1):
-        dia_alvo = hoje - timedelta(days=i)
-        label = dia_alvo.strftime("%d/%m") # Ex: 12/08
-        
-        # Filtra transações apenas deste dia
-        do_dia = [t for t in transacoes if t.data == dia_alvo]
-        
-        rec_dia = sum(t.valor for t in do_dia if t.tipo == 'receita')
-        desp_dia = sum(t.valor for t in do_dia if t.tipo == 'despesa')
-        
-        grafico_data["labels"].append(label)
-        grafico_data["receitas"].append(rec_dia)
-        grafico_data["despesas"].append(desp_dia)
+        dia = hoje - timedelta(days=i)
+        grafico["labels"].append(dia.strftime("%d/%m"))
+        do_dia = [t for t in transacoes if t.data == dia]
+        grafico["receitas"].append(sum(t.valor for t in do_dia if t.tipo == 'receita'))
+        grafico["despesas"].append(sum(t.valor for t in do_dia if t.tipo == 'despesa'))
 
-    # Retorno JSON pronto para o Front
     return {
         "negocio": negocio,
-        "kpis": {
-            "receita": total_receita,
-            "despesa": total_despesa,
-            "saldo": total_receita - total_despesa,
-            "total_km": total_km,
-            "total_litros": total_litros
-        },
-        "grafico": grafico_data,
+        "kpis": {"receita": rec, "despesa": desp, "saldo": rec-desp, "total_km": km, "total_litros": lit},
+        "grafico": grafico,
         "extrato": transacoes
     }
