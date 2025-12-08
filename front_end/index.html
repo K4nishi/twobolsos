@@ -2,75 +2,160 @@
 <html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>TwoBolsos - Gestão Blindada</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>twoBolsos</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; }
-        .card-bolso { background-color: #1e1e1e; border: 1px solid #333; transition: transform 0.2s; }
-        .card-bolso:hover { border-color: #0d6efd; }
-        .text-ganho { color: #00ff88; }
-        .text-gasto { color: #ff4d4d; }
-        .modal-content { background-color: #242424; border: 1px solid #444; }
+        /* Estilo Base Dark Moderno */
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Cards de Negócio */
+        .card-negocio {
+            background-color: #161b22; border: 1px solid #30363d; border-radius: 8px;
+            padding: 20px; transition: transform 0.2s, border-color 0.2s; cursor: pointer;
+        }
+        .card-negocio:hover { transform: translateY(-3px); border-color: #58a6ff; }
+        
+        /* Cores Semânticas */
+        .text-lucro { color: #3fb950; } /* Verde */
+        .text-preju { color: #f85149; } /* Vermelho */
+        
+        /* Caixas de KPI (Indicadores) */
+        .kpi-box {
+            background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+            padding: 15px; text-align: center; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body class="p-4">
 
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-5">
+    <div id="viewHome" class="container">
+        <div class="d-flex justify-content-between align-items-center mb-5 border-bottom border-secondary pb-3">
             <div>
-                <h1 class="mb-0">🎒 <span class="text-primary fw-bold">Two</span>Bolsos</h1>
-                <small class="text-secondary">Separe suas rendas, multiplique seu patrimônio.</small>
+                <h3 class="fw-bold mb-0">Minhas Carteiras</h3>
+                <small class="text-secondary">Gerencie suas fontes de renda</small>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoTrabalho">
-                <i class="bi bi-plus-circle"></i> Adicionar Trabalho
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovo">
+                <i class="bi bi-plus-lg"></i> Nova Carteira
             </button>
         </div>
 
-        <div id="containerBolsos" class="row g-4">
-            </div>
-
+        <div id="listaNegocios" class="row g-4"></div>
     </div>
 
-    <div class="modal fade" id="modalNovoTrabalho" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Novo Bolso</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div id="viewDash" class="container" style="display:none;">
+        
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom border-secondary">
+            <button onclick="voltarHome()" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i></button>
+            <div>
+                <h3 class="mb-0 fw-bold" id="dashTitulo">Nome do Negócio</h3>
+                <span class="badge bg-secondary" id="dashCategoria">TIPO</span>
+            </div>
+            <button onclick="deletarNegocio()" class="btn btn-outline-danger btn-sm ms-auto" title="Excluir Carteira"><i class="bi bi-trash"></i></button>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-4"><div class="kpi-box"><small class="text-secondary">Entradas</small><h4 class="text-lucro mb-0" id="valReceita">R$ 0</h4></div></div>
+            <div class="col-4"><div class="kpi-box"><small class="text-secondary">Saídas</small><h4 class="text-preju mb-0" id="valDespesa">R$ 0</h4></div></div>
+            <div class="col-4"><div class="kpi-box"><small class="text-secondary">Saldo</small><h4 class="text-white mb-0" id="valSaldo">R$ 0</h4></div></div>
+        </div>
+
+        <div id="painelMotorista" class="row g-3 mb-4" style="display:none;">
+            <div class="col-12"><h6 class="text-secondary border-bottom border-secondary pb-1 small">MÉTRICAS DE RODAGEM</h6></div>
+            <div class="col-6"><div class="kpi-box flex-row gap-3"><i class="bi bi-speedometer2 text-warning fs-3"></i><div><h5 class="mb-0 text-white" id="valKm">0 km</h5><small class="text-secondary">Total Rodado</small></div></div></div>
+            <div class="col-6"><div class="kpi-box flex-row gap-3"><i class="bi bi-fuel-pump text-danger fs-3"></i><div><h5 class="mb-0 text-white" id="valLitros">0 L</h5><small class="text-secondary">Abastecido</small></div></div></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <div class="kpi-box p-2" style="height: 300px;">
+                    <canvas id="graficoSemanal"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex flex-column gap-3">
+                <button onclick="abrirModalTrans('receita')" class="btn btn-success h-50 d-flex align-items-center justify-content-center gap-2 fs-5">
+                    <i class="bi bi-arrow-up-circle"></i> Entrada
+                </button>
+                <button onclick="abrirModalTrans('despesa')" class="btn btn-danger h-50 d-flex align-items-center justify-content-center gap-2 fs-5">
+                    <i class="bi bi-arrow-down-circle"></i> Saída
+                </button>
+            </div>
+        </div>
+
+        <h5 class="mb-3">Histórico Recente</h5>
+        <div class="table-responsive bg-dark rounded border border-secondary">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead id="tabelaHead" class="table-secondary">
+                    </thead>
+                <tbody id="tabelaBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalNovo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Nova Carteira</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label>Nome do Trabalho/Fonte</label>
-                    <input type="text" id="novoNomeTrab" class="form-control mb-2" placeholder="Ex: Mottu / Exército">
-                    <label>Tipo</label>
-                    <select id="novoTipoTrab" class="form-select mb-3">
-                        <option value="Fixo">Fixo (Salário)</option>
-                        <option value="Variavel">Variável (Entregas/Vendas)</option>
-                    </select>
-                    <button onclick="criarTrabalho()" class="btn btn-success w-100">Criar</button>
+                    <div class="mb-3">
+                        <label>Nome</label>
+                        <input id="nNome" class="form-control bg-dark text-white border-secondary" placeholder="Ex: Uber, Loja, Pessoal">
+                    </div>
+                    <div class="mb-3">
+                        <label>Tipo</label>
+                        <select id="nTipo" class="form-select bg-dark text-white border-secondary">
+                            <option value="PADRAO">Padrão (Só Financeiro)</option>
+                            <option value="MOTORISTA">Motorista de App (KM + Combustível)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Cor</label>
+                        <input id="nCor" type="color" class="form-control form-control-color bg-dark border-secondary" value="#0d6efd">
+                    </div>
+                    <button onclick="criarNegocio()" class="btn btn-primary w-100">Criar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="modalLancamento" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="tituloModalLancamento">Adicionar</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal fade" id="modalTrans" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="transTitulo">Nova Movimentação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" id="idTrabalhoAtivo">
-                    <input type="hidden" id="tipoLancamentoAtivo"> <label>Descrição</label>
-                    <input type="text" id="descLanc" class="form-control mb-2" placeholder="Ex: Gasolina / Diária">
-                    <label>Valor (R$)</label>
-                    <input type="number" id="valorLanc" class="form-control mb-2">
-                    <label>Data</label>
-                    <input type="date" id="dataLanc" class="form-control mb-3">
+                    <input type="hidden" id="tTipo">
                     
-                    <button onclick="salvarLancamento()" class="btn btn-primary w-100">Salvar</button>
+                    <input id="tDesc" class="form-control bg-dark text-white mb-2 border-secondary" placeholder="Descrição (Ex: Corrida, Almoço)">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-secondary text-white border-secondary">R$</span>
+                        <input id="tVal" type="number" class="form-control bg-dark text-white border-secondary" placeholder="0.00">
+                    </div>
+                    <input id="tData" type="date" class="form-control bg-dark text-white mb-3 border-secondary">
+
+                    <div id="inputsDriver" style="display:none;" class="p-3 mb-3 border border-secondary rounded bg-black bg-opacity-25">
+                        <div id="divKm" class="mb-2">
+                            <label class="text-warning small"><i class="bi bi-speedometer2"></i> KM Rodado</label>
+                            <input id="tKm" type="number" class="form-control bg-dark text-white border-warning">
+                        </div>
+                        <div id="divLitros">
+                            <label class="text-danger small"><i class="bi bi-fuel-pump"></i> Litros Abastecidos</label>
+                            <input id="tLitros" type="number" class="form-control bg-dark text-white border-danger">
+                        </div>
+                    </div>
+
+                    <button onclick="salvarTrans()" class="btn btn-primary w-100">Salvar</button>
                 </div>
             </div>
         </div>
@@ -79,165 +164,259 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const API = "http://127.0.0.1:8000";
-        
-        // Inicializa data de hoje nos inputs
-        document.getElementById('dataLanc').valueAsDate = new Date();
+        let ATUAL_ID = null;
+        let ATUAL_CATEGORIA = null;
+        let CHART = null;
 
-        // 1. CARREGAR TUDO
-        async function carregarDashboard() {
-            const res = await fetch(`${API}/trabalhos`);
-            const trabalhos = await res.json();
-            
-            const container = document.getElementById('containerBolsos');
-            container.innerHTML = ""; // Limpa tela
+        // Define data de hoje nos inputs de data
+        document.getElementById('tData').valueAsDate = new Date();
 
-            if (trabalhos.length === 0) {
-                container.innerHTML = `<div class="text-center text-secondary mt-5"><h3>Nenhum bolso criado.</h3><p>Clique em "Adicionar Trabalho" para começar.</p></div>`;
-                return;
-            }
-
-            // Para cada trabalho, cria um Card HTML
-            trabalhos.forEach(t => {
-                const idGrafico = `grafico-${t.id}`;
-                
-                // HTML do Card
-                const html = `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card card-bolso p-3 h-100">
-                            <div class="d-flex justify-content-between">
-                                <h5 class="fw-bold">${t.nome} <span class="badge bg-secondary" style="font-size:0.6em">${t.tipo}</span></h5>
-                                <button onclick="deletarTrabalho(${t.id})" class="btn btn-sm text-secondary"><i class="bi bi-x-lg"></i></button>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between mt-3 mb-3">
-                                <div class="text-center w-50 border-end border-secondary">
-                                    <small class="text-secondary">Entrou</small><br>
-                                    <span class="text-ganho fw-bold">R$ ${t.total_ganhos.toFixed(2)}</span>
-                                </div>
-                                <div class="text-center w-50">
-                                    <small class="text-secondary">Saiu</small><br>
-                                    <span class="text-gasto fw-bold">R$ ${t.total_gastos.toFixed(2)}</span>
-                                </div>
-                            </div>
-                            
-                            <div style="height: 180px; display:flex; justify-content:center;">
-                                <canvas id="${idGrafico}"></canvas>
-                            </div>
-
-                            <div class="text-center mt-3 mb-3">
-                                <small>Saldo no Bolso</small>
-                                <h3 class="${t.saldo >= 0 ? 'text-white' : 'text-gasto'}">R$ ${t.saldo.toFixed(2)}</h3>
-                            </div>
-
-                            <div class="d-flex gap-2 mt-auto">
-                                <button onclick="abrirModal(${t.id}, 'ganho')" class="btn btn-outline-success flex-fill"><i class="bi bi-arrow-up"></i> Receita</button>
-                                <button onclick="abrirModal(${t.id}, 'gasto')" class="btn btn-outline-danger flex-fill"><i class="bi bi-arrow-down"></i> Despesa</button>
-                            </div>
-                            
-                            <div class="mt-2 text-center">
-                                <small><a href="#" class="text-decoration-none text-secondary" onclick="alert('Implementar extrato detalhado aqui!')">Ver histórico</a></small>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-
-                // Desenha o gráfico logo após inserir o HTML (pequeno delay pra garantir que o elemento existe)
-                setTimeout(() => desenharGrafico(idGrafico, t.total_ganhos, t.total_gastos), 100);
-            });
+        // ========================
+        // 1. FUNÇÕES DE NAVEGAÇÃO
+        // ========================
+        function mostrarHome() {
+            document.getElementById('viewHome').style.display = 'block';
+            document.getElementById('viewDash').style.display = 'none';
+            carregarListaHome();
         }
 
-        // 2. DESENHAR GRÁFICO (Chart.js)
-        function desenharGrafico(canvasId, ganhos, gastos) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            const saldo = ganhos - gastos;
+        function mostrarDash() {
+            document.getElementById('viewHome').style.display = 'none';
+            document.getElementById('viewDash').style.display = 'block';
+        }
+
+        function voltarHome() {
+            ATUAL_ID = null;
+            mostrarHome();
+        }
+
+        // ========================
+        // 2. TELA HOME
+        // ========================
+        async function carregarListaHome() {
+            try {
+                const res = await fetch(`${API}/negocios`);
+                const lista = await res.json();
+                const container = document.getElementById('listaNegocios');
+                container.innerHTML = "";
+
+                if(lista.length === 0) {
+                    container.innerHTML = `<div class="text-center text-secondary py-5">Nenhuma carteira encontrada.<br>Crie a primeira!</div>`;
+                    return;
+                }
+
+                lista.forEach(n => {
+                    container.innerHTML += `
+                        <div class="col-md-4 col-lg-3">
+                            <div class="card-negocio h-100 d-flex flex-column justify-content-between" onclick="abrirDash(${n.id})" style="border-left: 5px solid ${n.cor}">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="fw-bold mb-0">${n.nome}</h5>
+                                        <span class="badge bg-secondary" style="font-size: 0.65em">${n.categoria}</span>
+                                    </div>
+                                    <small class="text-secondary">Saldo Atual</small>
+                                </div>
+                                <h3 class="mt-2 mb-0 ${n.saldo >= 0 ? 'text-lucro' : 'text-preju'}">R$ ${n.saldo.toFixed(2)}</h3>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                console.error("Erro ao carregar home:", e);
+                alert("Erro ao conectar com o servidor. Verifique se o Python está rodando.");
+            }
+        }
+
+        async function criarNegocio() {
+            const nome = document.getElementById('nNome').value;
+            if(!nome) return alert("O nome é obrigatório!");
+
+            await fetch(`${API}/negocios`, {
+                method: "POST", headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({
+                    nome: nome,
+                    categoria: document.getElementById('nTipo').value,
+                    cor: document.getElementById('nCor').value
+                })
+            });
+
+            // Fecha modal e recarrega
+            bootstrap.Modal.getInstance(document.getElementById('modalNovo')).hide();
+            document.getElementById('nNome').value = ""; // Limpa input
+            carregarListaHome();
+        }
+
+        // ========================
+        // 3. TELA DASHBOARD
+        // ========================
+        async function abrirDash(id) {
+            ATUAL_ID = id;
+            await atualizarTela();
+            mostrarDash();
+        }
+
+        async function atualizarTela() {
+            // Busca TODOS os dados do Back-End (API Otimizada)
+            const res = await fetch(`${API}/negocios/${ATUAL_ID}/dashboard`);
+            const data = await res.json();
+            const n = data.negocio;
+            ATUAL_CATEGORIA = n.categoria;
+
+            // 1. Header e KPIs Gerais
+            document.getElementById('dashTitulo').innerText = n.nome;
+            document.getElementById('dashCategoria').innerText = n.categoria;
+            document.getElementById('dashCategoria').style.backgroundColor = n.cor;
+
+            document.getElementById('valReceita').innerText = `R$ ${data.kpis.receita.toFixed(2)}`;
+            document.getElementById('valDespesa').innerText = `R$ ${data.kpis.despesa.toFixed(2)}`;
+            document.getElementById('valSaldo').innerText = `R$ ${data.kpis.saldo.toFixed(2)}`;
+
+            // 2. KPIs Motorista (Lógica de Exibição)
+            const painelM = document.getElementById('painelMotorista');
+            if (n.categoria === 'MOTORISTA') {
+                painelM.style.display = 'flex';
+                document.getElementById('valKm').innerText = data.kpis.total_km + " km";
+                document.getElementById('valLitros').innerText = data.kpis.total_litros + " L";
+            } else {
+                painelM.style.display = 'none';
+            }
+
+            // 3. Gráfico (Chart.js)
+            renderizarGrafico(data.grafico);
+
+            // 4. Tabela Inteligente (Colunas Dinâmicas)
+            renderizarTabela(data.extrato, n.categoria);
+        }
+
+        function renderizarGrafico(dados) {
+            const ctx = document.getElementById('graficoSemanal').getContext('2d');
             
-            new Chart(ctx, {
-                type: 'doughnut',
+            // Destrói gráfico antigo para não sobrepor
+            if(CHART) CHART.destroy();
+
+            CHART = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: ['Gasto', 'Livre'],
-                    datasets: [{
-                        data: [gastos, saldo > 0 ? saldo : 0], // Se saldo for negativo, mostra 0 livre
-                        backgroundColor: ['#ff4d4d', '#0d6efd'], // Vermelho e Azul
-                        borderWidth: 0
-                    }]
+                    labels: dados.labels,
+                    datasets: [
+                        { label: 'Entradas', data: dados.receitas, backgroundColor: '#3fb950', borderRadius: 4 },
+                        { label: 'Saídas', data: dados.despesas, backgroundColor: '#f85149', borderRadius: 4 }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#8b949e' } },
+                        y: { grid: { color: '#30363d' }, ticks: { color: '#8b949e' } }
+                    },
+                    plugins: { legend: { labels: { color: '#c9d1d9' } } }
                 }
             });
         }
 
-        // 3. AÇÕES (CRIAR, DELETAR, SALVAR)
+        function renderizarTabela(transacoes, categoria) {
+            const thead = document.getElementById('tabelaHead');
+            const tbody = document.getElementById('tabelaBody');
 
-        async function criarTrabalho() {
-            const nome = document.getElementById('novoNomeTrab').value;
-            const tipo = document.getElementById('novoTipoTrab').value;
-            if(!nome) return;
+            // Define Cabeçalho
+            let htmlHead = `<tr><th>Data</th><th>Descrição</th>`;
+            if (categoria === 'MOTORISTA') htmlHead += `<th>KM</th><th>Litros</th>`;
+            htmlHead += `<th class="text-end">Valor</th><th class="text-end">Ação</th></tr>`;
+            thead.innerHTML = htmlHead;
 
-            await fetch(`${API}/trabalhos`, {
-                method: "POST", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({ nome, tipo })
+            // Define Linhas
+            tbody.innerHTML = "";
+            transacoes.forEach(t => {
+                let htmlRow = `<tr>
+                    <td class="text-secondary small">${t.data}</td>
+                    <td>${t.descricao}</td>`;
+                
+                if (categoria === 'MOTORISTA') {
+                    htmlRow += `<td class="text-warning small">${t.km > 0 ? t.km : '-'}</td>`;
+                    htmlRow += `<td class="text-danger small">${t.litros > 0 ? t.litros : '-'}</td>`;
+                }
+
+                const cor = t.tipo === 'receita' ? 'text-lucro' : 'text-preju';
+                htmlRow += `<td class="text-end fw-bold ${cor}">R$ ${t.valor.toFixed(2)}</td>
+                            <td class="text-end"><button onclick="deletarTrans(${t.id})" class="btn btn-sm btn-link text-secondary"><i class="bi bi-x-lg"></i></button></td></tr>`;
+                
+                tbody.innerHTML += htmlRow;
             });
-            
-            // Fecha modal e recarrega
-            bootstrap.Modal.getInstance(document.getElementById('modalNovoTrabalho')).hide();
-            document.getElementById('novoNomeTrab').value = "";
-            carregarDashboard();
         }
 
-        async function deletarTrabalho(id) {
-            if(confirm("Tem certeza? Isso apaga todos os lançamentos desse bolso!")) {
-                await fetch(`${API}/trabalhos/${id}`, { method: "DELETE" });
-                carregarDashboard();
+        // ========================
+        // 4. TRANSAÇÕES
+        // ========================
+        function abrirModalTrans(tipo) {
+            document.getElementById('tTipo').value = tipo;
+            document.getElementById('transTitulo').innerText = tipo === 'receita' ? "Nova Receita" : "Nova Despesa";
+            
+            // Exibe inputs de Motorista somente se necessário
+            const divDriver = document.getElementById('inputsDriver');
+            const divKm = document.getElementById('divKm');
+            const divLitros = document.getElementById('divLitros');
+
+            divDriver.style.display = 'none';
+
+            if (ATUAL_CATEGORIA === 'MOTORISTA') {
+                divDriver.style.display = 'block';
+                if (tipo === 'receita') {
+                    divKm.style.display = 'block';
+                    divLitros.style.display = 'none';
+                } else {
+                    divKm.style.display = 'none';
+                    divLitros.style.display = 'block';
+                }
             }
+            new bootstrap.Modal(document.getElementById('modalTrans')).show();
         }
 
-        function abrirModal(idTrabalho, tipo) {
-            document.getElementById('idTrabalhoAtivo').value = idTrabalho;
-            document.getElementById('tipoLancamentoAtivo').value = tipo;
-            document.getElementById('tituloModalLancamento').innerText = tipo === 'ganho' ? "Nova Receita 🤑" : "Nova Despesa 💸";
+        async function salvarTrans() {
+            const desc = document.getElementById('tDesc').value;
+            const val = document.getElementById('tVal').value;
             
-            const modal = new bootstrap.Modal(document.getElementById('modalLancamento'));
-            modal.show();
-        }
+            if(!desc || !val) return alert("Preencha descrição e valor!");
 
-        async function salvarLancamento() {
-            const idTrab = document.getElementById('idTrabalhoAtivo').value;
-            const tipo = document.getElementById('tipoLancamentoAtivo').value;
-            const desc = document.getElementById('descLanc').value;
-            const valor = document.getElementById('valorLanc').value;
-            const data = document.getElementById('dataLanc').value;
-
-            if(!desc || !valor) return alert("Preencha tudo!");
-
-            await fetch(`${API}/lancamentos`, {
-                method: "POST", headers:{"Content-Type":"application/json"},
+            await fetch(`${API}/transacoes`, {
+                method: "POST", headers: {"Content-Type":"application/json"},
                 body: JSON.stringify({
+                    negocio_id: ATUAL_ID,
+                    tipo: document.getElementById('tTipo').value,
                     descricao: desc,
-                    valor: valor,
-                    tipo: tipo,
-                    data: data,
-                    trabalho_id: idTrab
+                    valor: val,
+                    data: document.getElementById('tData').value,
+                    km: document.getElementById('tKm').value || 0,
+                    litros: document.getElementById('tLitros').value || 0
                 })
             });
 
-            // Fecha modal e limpa
-            const modalEl = document.getElementById('modalLancamento');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
+            // Limpa e Atualiza
+            bootstrap.Modal.getInstance(document.getElementById('modalTrans')).hide();
+            document.getElementById('tDesc').value = "";
+            document.getElementById('tVal').value = "";
+            document.getElementById('tKm').value = "";
+            document.getElementById('tLitros').value = "";
             
-            document.getElementById('descLanc').value = "";
-            document.getElementById('valorLanc').value = "";
-            
-            carregarDashboard();
+            atualizarTela(); // ATUALIZA TUDO NA HORA
         }
 
-        // Iniciar
-        carregarDashboard();
+        async function deletarTrans(id) {
+            if(confirm("Tem certeza que deseja apagar?")) {
+                await fetch(`${API}/transacoes/${id}`, {method:"DELETE"});
+                atualizarTela();
+            }
+        }
 
+        async function deletarNegocio() {
+            if(confirm("ATENÇÃO: Isso apagará a carteira e TODO o histórico. Continuar?")) {
+                await fetch(`${API}/negocios/${ATUAL_ID}`, {method:"DELETE"});
+                voltarHome();
+            }
+        }
+
+        // Inicia na Home
+        mostrarHome();
     </script>
 </body>
 </html>
