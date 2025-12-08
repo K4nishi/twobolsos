@@ -145,3 +145,59 @@ def get_dashboard(id: int, session: Session = Depends(get_session)):
         "grafico": grafico,
         "extrato": transacoes
     }
+# --- SUBSTIRUA APENAS A FUNÇÃO get_dashboard POR ESTA ---
+
+@app.get("/negocios/{id}/dashboard")
+def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session)):
+    """
+    Retorna dashboard dinâmico. 
+    Parâmetro opcional '?dias=15' define o tamanho do gráfico.
+    """
+    negocio = session.get(Negocio, id)
+    if not negocio:
+        raise HTTPException(status_code=404, detail="Negócio não encontrado")
+    
+    # Busca todas as transações para calcular totais (Saldo geral não depende do filtro de dias)
+    query = select(Transacao).where(Transacao.negocio_id == id).order_by(Transacao.data.desc())
+    todas_transacoes = session.exec(query).all()
+    
+    # 1. Cálculos Gerais (Financeiro - Sempre Total)
+    total_receita = sum(t.valor for t in todas_transacoes if t.tipo == 'receita')
+    total_despesa = sum(t.valor for t in todas_transacoes if t.tipo == 'despesa')
+    
+    # 2. Cálculos Específicos (Motorista - Sempre Total)
+    total_km = sum(t.km for t in todas_transacoes if t.km)
+    total_litros = sum(t.litros for t in todas_transacoes if t.litros)
+    
+    # 3. Montagem do Gráfico (DINÂMICO BASEADO NOS DIAS)
+    hoje = date.today()
+    grafico_data = {"labels": [], "receitas": [], "despesas": []}
+    
+    # Loop reverso de X dias atrás até hoje
+    # range(6, -1, -1) gera 7 dias (0 a 6). Então fazemos dias-1.
+    for i in range(dias - 1, -1, -1):
+        dia_alvo = hoje - timedelta(days=i)
+        label = dia_alvo.strftime("%d/%m")
+        
+        # Filtra transações apenas deste dia
+        do_dia = [t for t in todas_transacoes if t.data == dia_alvo]
+        
+        rec_dia = sum(t.valor for t in do_dia if t.tipo == 'receita')
+        desp_dia = sum(t.valor for t in do_dia if t.tipo == 'despesa')
+        
+        grafico_data["labels"].append(label)
+        grafico_data["receitas"].append(rec_dia)
+        grafico_data["despesas"].append(desp_dia)
+
+    return {
+        "negocio": negocio,
+        "kpis": {
+            "receita": total_receita,
+            "despesa": total_despesa,
+            "saldo": total_receita - total_despesa,
+            "total_km": total_km,
+            "total_litros": total_litros
+        },
+        "grafico": grafico_data,
+        "extrato": todas_transacoes # Manda tudo, front filtra se quiser
+    }
