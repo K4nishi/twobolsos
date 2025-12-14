@@ -1,26 +1,18 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import date, timedelta
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from sqlmodel import SQLModel, Field, Relationship, create_engine, Session, select
 
-# ==========================================
-# 1. CONFIGURAÇÃO DO BANCO DE DADOS
-# ==========================================
-
+# 1. CONFIGURAÇÃO
 sqlite_file_name = "twobolsos.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
-
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args)
 
-# ==========================================
-# 2. MODELOS (TABELAS)
-# ==========================================
-
+# 2. MODELOS
 class Negocio(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nome: str
@@ -34,13 +26,16 @@ class DespesaFixa(SQLModel, table=True):
     negocio_id: int = Field(foreign_key="negocio.id")
     nome: str
     valor: float
-    dia_vencimento: int = 1
+    tag: str = "Fixas" # Nova classificação
     negocio: Optional[Negocio] = Relationship(back_populates="fixas")
 
 class Transacao(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     negocio_id: int = Field(foreign_key="negocio.id")
     fixa_id: Optional[int] = None 
+    
+    tag: str = "Outros" # <--- NOVO CAMPO: Categoria
+    
     descricao: str
     valor: float
     tipo: str 
@@ -49,41 +44,25 @@ class Transacao(SQLModel, table=True):
     litros: Optional[float] = 0.0
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
 
-# ==========================================
-# 3. INICIALIZAÇÃO DO APP
-# ==========================================
-
-app = FastAPI(title="TwoBolsos Pro")
+# 3. APP
+app = FastAPI(title="TwoBolsos V12")
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
-
-def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 def get_session():
     with Session(engine) as session:
         yield session
 
-# ==========================================
-# 4. ROTAS (SEM O PREFIXO /api PARA FUNCIONAR)
-# ==========================================
-
+# 4. ROTAS
 @app.post("/negocios")
 def criar_negocio(n: Negocio, session: Session = Depends(get_session)):
-    session.add(n)
-    session.commit()
-    session.refresh(n)
-    return n
+    session.add(n); session.commit(); session.refresh(n); return n
 
 @app.get("/negocios")
 def listar_negocios(session: Session = Depends(get_session)):
@@ -92,13 +71,7 @@ def listar_negocios(session: Session = Depends(get_session)):
     for n in negocios:
         rec = sum(t.valor for t in n.transacoes if t.tipo == 'receita')
         desp = sum(t.valor for t in n.transacoes if t.tipo == 'despesa')
-        lista.append({
-            "id": n.id,
-            "nome": n.nome,
-            "categoria": n.categoria,
-            "cor": n.cor,
-            "saldo": rec - desp
-        })
+        lista.append({"id": n.id, "nome": n.nome, "categoria": n.categoria, "cor": n.cor, "saldo": rec - desp})
     return lista
 
 @app.delete("/negocios/{id}")
@@ -107,16 +80,11 @@ def deletar_negocio(id: int, session: Session = Depends(get_session)):
     if not n: raise HTTPException(404)
     for t in n.transacoes: session.delete(t)
     for f in n.fixas: session.delete(f)
-    session.delete(n)
-    session.commit()
-    return {"ok": True}
+    session.delete(n); session.commit(); return {"ok": True}
 
 @app.post("/fixas")
 def criar_fixa(f: DespesaFixa, session: Session = Depends(get_session)):
-    session.add(f)
-    session.commit()
-    session.refresh(f)
-    return f
+    session.add(f); session.commit(); session.refresh(f); return f
 
 @app.get("/negocios/{id}/fixas")
 def listar_fixas(id: int, session: Session = Depends(get_session)):
@@ -124,15 +92,10 @@ def listar_fixas(id: int, session: Session = Depends(get_session)):
     hoje = date.today()
     resposta = []
     for f in fixas:
-        query = select(Transacao).where(
-            Transacao.fixa_id == f.id,
-            Transacao.data >= date(hoje.year, hoje.month, 1)
-        )
+        query = select(Transacao).where(Transacao.fixa_id == f.id, Transacao.data >= date(hoje.year, hoje.month, 1))
         pagamentos = session.exec(query).all()
         foi_pago = any(p.data.month == hoje.month and p.data.year == hoje.year for p in pagamentos)
-        resposta.append({
-            "id": f.id, "nome": f.nome, "valor": f.valor, "pago_neste_mes": foi_pago
-        })
+        resposta.append({"id": f.id, "nome": f.nome, "valor": f.valor, "tag": f.tag, "pago_neste_mes": foi_pago})
     return resposta
 
 @app.post("/fixas/{id}/pagar")
@@ -142,48 +105,33 @@ def pagar_fixa(id: int, session: Session = Depends(get_session)):
     hoje = date.today()
     existentes = session.exec(select(Transacao).where(Transacao.fixa_id == id)).all()
     if any(t.data.month == hoje.month and t.data.year == hoje.year for t in existentes):
-        raise HTTPException(status_code=400, detail="Já pago este mês")
-    ref = hoje.strftime("%m/%Y")
+        raise HTTPException(status_code=400, detail="Pago")
+    
     t = Transacao(
-        negocio_id=f.negocio_id,
-        fixa_id=f.id,
-        descricao=f"{f.nome} (Ref: {ref})",
-        valor=f.valor,
-        tipo="despesa",
-        data=hoje
+        negocio_id=f.negocio_id, fixa_id=f.id, 
+        descricao=f"{f.nome} (Ref: {hoje.strftime('%m/%Y')})", 
+        valor=f.valor, tipo="despesa", dapta=hoje, 
+        tag=f.tag # Usa a tag da conta fixa (ex: Aluguel)
     )
-    session.add(t)
-    session.commit()
-    return t
+    session.add(t); session.commit(); return t
 
 @app.delete("/fixas/{id}")
 def deletar_fixa(id: int, session: Session = Depends(get_session)):
-    f = session.get(DespesaFixa, id)
-    session.delete(f)
-    session.commit()
-    return {"ok": True}
+    f = session.get(DespesaFixa, id); session.delete(f); session.commit(); return {"ok": True}
 
 @app.post("/transacoes")
 def nova_transacao(t: Transacao, session: Session = Depends(get_session)):
-    if isinstance(t.data, str):
-        t.data = date.fromisoformat(t.data)
-    session.add(t)
-    session.commit()
-    session.refresh(t)
-    return t
+    if isinstance(t.data, str): t.data = date.fromisoformat(t.data)
+    session.add(t); session.commit(); session.refresh(t); return t
 
 @app.delete("/transacoes/{id}")
 def deletar_transacao(id: int, session: Session = Depends(get_session)):
-    t = session.get(Transacao, id)
-    session.delete(t)
-    session.commit()
-    return {"ok": True}
+    t = session.get(Transacao, id); session.delete(t); session.commit(); return {"ok": True}
 
 @app.get("/negocios/{id}/dashboard")
 def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session)):
     negocio = session.get(Negocio, id)
     if not negocio: raise HTTPException(404)
-    
     transacoes = session.exec(select(Transacao).where(Transacao.negocio_id == id).order_by(Transacao.data.desc())).all()
     
     rec = sum(t.valor for t in transacoes if t.tipo == 'receita')
@@ -191,28 +139,35 @@ def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session
     km = sum(t.km for t in transacoes if t.km)
     lit = sum(t.litros for t in transacoes if t.litros)
     
+    # Gráfico Fluxo (Linha)
     hoje = date.today()
-    grafico = {"labels": [], "receitas": [], "despesas": []}
+    grafico_linha = {"labels": [], "receitas": [], "despesas": []}
     for i in range(dias - 1, -1, -1):
         dia = hoje - timedelta(days=i)
-        grafico["labels"].append(dia.strftime("%d/%m"))
+        grafico_linha["labels"].append(dia.strftime("%d/%m"))
         do_dia = [t for t in transacoes if t.data == dia]
-        grafico["receitas"].append(sum(t.valor for t in do_dia if t.tipo == 'receita'))
-        grafico["despesas"].append(sum(t.valor for t in do_dia if t.tipo == 'despesa'))
+        grafico_linha["receitas"].append(sum(t.valor for t in do_dia if t.tipo == 'receita'))
+        grafico_linha["despesas"].append(sum(t.valor for t in do_dia if t.tipo == 'despesa'))
+
+    # NOVO: Gráfico Pizza (Categorias)
+    # Pega apenas despesas dos últimos 30 dias para a pizza ser relevante
+    mes_inicio = hoje - timedelta(days=30)
+    gastos_pizza = {}
+    for t in transacoes:
+        if t.tipo == 'despesa' and t.data >= mes_inicio:
+            # Se não tiver tag, chama de Outros
+            cat = t.tag if t.tag else "Outros"
+            gastos_pizza[cat] = gastos_pizza.get(cat, 0) + t.valor
 
     return {
         "negocio": negocio,
-        "kpis": {"receita": rec, "despesa": desp, "saldo": rec - desp, "total_km": km, "total_litros": lit},
-        "grafico": grafico, "extrato": transacoes
+        "kpis": {"receita": rec, "despesa": desp, "saldo": rec-desp, "total_km": km, "total_litros": lit},
+        "grafico": grafico_linha,
+        "pizza": gastos_pizza, # <--- Dados novos
+        "extrato": transacoes
     }
 
-# ==========================================
-# 5. SERVIR O FRONT-END (MÁGICA DO NO-RELOAD)
-# ==========================================
-
+# 5. FRONT-END (Sem reload)
 path_front = os.path.join(os.path.dirname(__file__), "../front_end")
-
 if os.path.exists(path_front):
     app.mount("/", StaticFiles(directory=path_front, html=True), name="static")
-else:
-    print("AVISO: Pasta front_end não encontrada. Verifique a estrutura.")
