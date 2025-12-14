@@ -26,16 +26,14 @@ class DespesaFixa(SQLModel, table=True):
     negocio_id: int = Field(foreign_key="negocio.id")
     nome: str
     valor: float
-    tag: str = "Fixas" # Nova classificação
+    tag: str = "Fixas"
     negocio: Optional[Negocio] = Relationship(back_populates="fixas")
 
 class Transacao(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     negocio_id: int = Field(foreign_key="negocio.id")
     fixa_id: Optional[int] = None 
-    
-    tag: str = "Outros" # <--- NOVO CAMPO: Categoria
-    
+    tag: str = "Outros"
     descricao: str
     valor: float
     tipo: str 
@@ -45,7 +43,7 @@ class Transacao(SQLModel, table=True):
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
 
 # 3. APP
-app = FastAPI(title="TwoBolsos V12")
+app = FastAPI(title="TwoBolsos V12.5")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
@@ -106,13 +104,7 @@ def pagar_fixa(id: int, session: Session = Depends(get_session)):
     existentes = session.exec(select(Transacao).where(Transacao.fixa_id == id)).all()
     if any(t.data.month == hoje.month and t.data.year == hoje.year for t in existentes):
         raise HTTPException(status_code=400, detail="Pago")
-    
-    t = Transacao(
-        negocio_id=f.negocio_id, fixa_id=f.id, 
-        descricao=f"{f.nome} (Ref: {hoje.strftime('%m/%Y')})", 
-        valor=f.valor, tipo="despesa", dapta=hoje, 
-        tag=f.tag # Usa a tag da conta fixa (ex: Aluguel)
-    )
+    t = Transacao(negocio_id=f.negocio_id, fixa_id=f.id, descricao=f"{f.nome} (Ref: {hoje.strftime('%m/%Y')})", valor=f.valor, tipo="despesa", data=hoje, tag=f.tag)
     session.add(t); session.commit(); return t
 
 @app.delete("/fixas/{id}")
@@ -139,7 +131,13 @@ def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session
     km = sum(t.km for t in transacoes if t.km)
     lit = sum(t.litros for t in transacoes if t.litros)
     
-    # Gráfico Fluxo (Linha)
+    # CÁLCULOS AVANÇADOS DE MOTORISTA
+    kml = 0.0
+    rendimento_km = 0.0
+    
+    if lit > 0: kml = km / lit  # Autonomia
+    if km > 0: rendimento_km = (rec - desp) / km # Lucro por KM
+
     hoje = date.today()
     grafico_linha = {"labels": [], "receitas": [], "despesas": []}
     for i in range(dias - 1, -1, -1):
@@ -149,25 +147,24 @@ def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session
         grafico_linha["receitas"].append(sum(t.valor for t in do_dia if t.tipo == 'receita'))
         grafico_linha["despesas"].append(sum(t.valor for t in do_dia if t.tipo == 'despesa'))
 
-    # NOVO: Gráfico Pizza (Categorias)
-    # Pega apenas despesas dos últimos 30 dias para a pizza ser relevante
     mes_inicio = hoje - timedelta(days=30)
     gastos_pizza = {}
     for t in transacoes:
         if t.tipo == 'despesa' and t.data >= mes_inicio:
-            # Se não tiver tag, chama de Outros
             cat = t.tag if t.tag else "Outros"
             gastos_pizza[cat] = gastos_pizza.get(cat, 0) + t.valor
 
     return {
         "negocio": negocio,
-        "kpis": {"receita": rec, "despesa": desp, "saldo": rec-desp, "total_km": km, "total_litros": lit},
-        "grafico": grafico_linha,
-        "pizza": gastos_pizza, # <--- Dados novos
-        "extrato": transacoes
+        "kpis": {
+            "receita": rec, "despesa": desp, "saldo": rec-desp, 
+            "total_km": km, "total_litros": lit,
+            "autonomia": kml, "rendimento": rendimento_km # Novos KPIs
+        },
+        "grafico": grafico_linha, "pizza": gastos_pizza, "extrato": transacoes
     }
 
-# 5. FRONT-END (Sem reload)
+# 5. FRONT-END
 path_front = os.path.join(os.path.dirname(__file__), "../front_end")
 if os.path.exists(path_front):
     app.mount("/", StaticFiles(directory=path_front, html=True), name="static")
