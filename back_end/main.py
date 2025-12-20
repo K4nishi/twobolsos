@@ -1,9 +1,10 @@
 import os
-from typing import List, Optional, Dict
+from typing import List, Optional
 from datetime import date, timedelta
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlmodel import SQLModel, Field, Relationship, create_engine, Session, select
 
 # 1. CONFIGURAÇÃO
@@ -27,13 +28,16 @@ class DespesaFixa(SQLModel, table=True):
     nome: str
     valor: float
     tag: str = "Fixas"
+    dia_vencimento: int = 1
     negocio: Optional[Negocio] = Relationship(back_populates="fixas")
 
 class Transacao(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     negocio_id: int = Field(foreign_key="negocio.id")
     fixa_id: Optional[int] = None 
-    tag: str = "Outros"
+    
+    tag: str = "Geral" 
+    
     descricao: str
     valor: float
     tipo: str 
@@ -43,7 +47,7 @@ class Transacao(SQLModel, table=True):
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
 
 # 3. APP
-app = FastAPI(title="TwoBolsos V12.5")
+app = FastAPI(title="TwoBolsos V13")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
@@ -104,7 +108,13 @@ def pagar_fixa(id: int, session: Session = Depends(get_session)):
     existentes = session.exec(select(Transacao).where(Transacao.fixa_id == id)).all()
     if any(t.data.month == hoje.month and t.data.year == hoje.year for t in existentes):
         raise HTTPException(status_code=400, detail="Pago")
-    t = Transacao(negocio_id=f.negocio_id, fixa_id=f.id, descricao=f"{f.nome} (Ref: {hoje.strftime('%m/%Y')})", valor=f.valor, tipo="despesa", data=hoje, tag=f.tag)
+    
+    t = Transacao(
+        negocio_id=f.negocio_id, fixa_id=f.id, 
+        descricao=f"{f.nome} (Ref: {hoje.strftime('%m/%Y')})", 
+        valor=f.valor, tipo="despesa", data=hoje, 
+        tag=f.tag
+    )
     session.add(t); session.commit(); return t
 
 @app.delete("/fixas/{id}")
@@ -131,12 +141,10 @@ def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session
     km = sum(t.km for t in transacoes if t.km)
     lit = sum(t.litros for t in transacoes if t.litros)
     
-    # CÁLCULOS AVANÇADOS DE MOTORISTA
     kml = 0.0
     rendimento_km = 0.0
-    
-    if lit > 0: kml = km / lit  # Autonomia
-    if km > 0: rendimento_km = (rec - desp) / km # Lucro por KM
+    if lit > 0: kml = km / lit
+    if km > 0: rendimento_km = (rec - desp) / km
 
     hoje = date.today()
     grafico_linha = {"labels": [], "receitas": [], "despesas": []}
@@ -156,12 +164,10 @@ def get_dashboard(id: int, dias: int = 7, session: Session = Depends(get_session
 
     return {
         "negocio": negocio,
-        "kpis": {
-            "receita": rec, "despesa": desp, "saldo": rec-desp, 
-            "total_km": km, "total_litros": lit,
-            "autonomia": kml, "rendimento": rendimento_km # Novos KPIs
-        },
-        "grafico": grafico_linha, "pizza": gastos_pizza, "extrato": transacoes
+        "kpis": {"receita": rec, "despesa": desp, "saldo": rec-desp, "total_km": km, "total_litros": lit, "autonomia": kml, "rendimento": rendimento_km},
+        "grafico": grafico_linha,
+        "pizza": gastos_pizza,
+        "extrato": transacoes
     }
 
 # 5. FRONT-END
