@@ -1,305 +1,322 @@
 <!DOCTYPE html>
 <html lang="pt-br" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>TwoBolsos</title>
-    
+
+    <!-- Libraries -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-        :root { --bg-body: #09090b; --glass-border: rgba(255, 255, 255, 0.08); }
-        body { background-color: var(--bg-body); color: #e4e4e7; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
-        .glass-card { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 16px; }
-        .wallet-card { background: linear-gradient(145deg, #1e1e24, #131316); border-radius: 12px; padding: 20px; border: 1px solid var(--glass-border); cursor: pointer; position: relative; }
-        .wallet-card:active { transform: scale(0.98); }
-        .kpi-card { background: #1f1f23; border-radius: 12px; padding: 12px; border: 1px solid var(--glass-border); text-align: center; }
-        .kpi-value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
-        .btn-mobile-lg { padding: 14px; border-radius: 12px; font-weight: 600; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-success-soft { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .btn-danger-soft { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .btn-info-soft { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-        .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--glass-border); }
-        .trans-date { font-size: 0.75rem; color: #71717a; }
-        .trans-val { font-weight: 700; font-size: 0.95rem; }
-        @media (max-width: 576px) { .modal-dialog { margin: 0; } .modal-content { border-radius: 0; min-height: 100vh; border: none; } }
-    </style>
+    <!-- App Styles -->
+    <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
 
+    <!-- HOME VIEW -->
     <div id="viewHome" class="container py-4 fade-in">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div><h4 class="fw-bold mb-0">TwoBolsos</h4><small class="text-secondary">Visão Geral</small></div>
-            <button class="btn btn-primary rounded-circle" style="width: 45px; height: 45px;" data-bs-toggle="modal" data-bs-target="#modalNovo"><i class="bi bi-plus-lg"></i></button>
+        <header class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h3 class="fw-bold mb-0">TwoBolsos</h3>
+                <small class="text-muted">Gestão Financeira</small>
+            </div>
+            <button class="btn btn-primary rounded-circle shadow-lg" style="width: 50px; height: 50px;"
+                data-bs-toggle="modal" data-bs-target="#modalNovo">
+                <i class="bi bi-plus-lg fs-4"></i>
+            </button>
+        </header>
+
+        <div id="listaNegocios" class="row g-4">
+            <!-- Wallets Rendered Here -->
         </div>
-        <div id="listaNegocios" class="row g-3"></div>
     </div>
 
-    <div id="viewDash" class="container py-3" style="display: none;">
-        <div class="d-flex align-items-center gap-2 mb-4">
-            <button type="button" onclick="voltarHome()" class="btn btn-outline-secondary rounded-circle" style="width: 40px; height: 40px;"><i class="bi bi-arrow-left"></i></button>
-            <div class="flex-grow-1 ms-2">
-                <h5 class="mb-0 fw-bold" id="dashTitle">Carregando...</h5>
-                <span class="badge bg-dark border border-secondary text-secondary" id="dashCategoria">...</span>
+    <!-- DASHBOARD VIEW -->
+    <div id="viewDash" class="container py-3 fade-in" style="display: none;">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button onclick="voltarHome()"
+                class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 42px; height: 42px;">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="flex-grow-1">
+                <h5 class="mb-0 fw-bold" id="dashTitle">...</h5>
+                <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25"
+                    id="dashCategoria">...</span>
             </div>
-            <button type="button" onclick="abrirModalFixas()" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-calendar-check"></i> Fixas</button>
-            <button type="button" onclick="deletarNegocio()" class="btn btn-dark btn-sm text-danger border-secondary"><i class="bi bi-trash"></i></button>
+            <div class="dropdown">
+                <button class="btn btn-dark border-secondary rounded-circle" type="button" data-bs-toggle="dropdown"><i
+                        class="bi bi-three-dots-vertical"></i></button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" onclick="abrirModalFixas()"><i
+                                class="bi bi-calendar-check me-2"></i> Despesas Fixas</button></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><button class="dropdown-item text-danger" onclick="deletarNegocio()"><i
+                                class="bi bi-trash me-2"></i> Excluir Carteira</button></li>
+                </ul>
+            </div>
         </div>
 
+        <!-- KPIs -->
         <div class="row g-2 mb-3">
-            <div class="col-4"><div class="kpi-card border-success border-opacity-25"><div class="text-success small">Entrou</div><div class="kpi-value text-success" id="valRec">R$0</div></div></div>
-            <div class="col-4"><div class="kpi-card border-danger border-opacity-25"><div class="text-danger small">Saiu</div><div class="kpi-value text-danger" id="valDesp">R$0</div></div></div>
-            <div class="col-4"><div class="kpi-card"><div class="small">Saldo</div><div class="kpi-value text-white" id="valSaldo">R$0</div></div></div>
+            <div class="col-4">
+                <div class="kpi-card">
+                    <div class="kpi-label text-success">Entradas</div>
+                    <div class="kpi-value text-success" id="valRec">R$0</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="kpi-card">
+                    <div class="kpi-label text-danger">Saídas</div>
+                    <div class="kpi-value text-danger" id="valDesp">R$0</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="kpi-card" style="background: rgba(255,255,255,0.03);">
+                    <div class="kpi-label text-white">Saldo</div>
+                    <div class="kpi-value text-white" id="valSaldo">R$0</div>
+                </div>
+            </div>
         </div>
 
-        <div id="painelMotorista" class="glass-card p-3 mb-3" style="display:none;">
+        <!-- Motorista Panel -->
+        <div id="painelMotorista" class="glass-card p-3 mb-3"
+            style="display:none; background: linear-gradient(145deg, rgba(30,30,36,0.8), rgba(19,19,22,0.8));">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <small class="text-secondary fw-bold"><i class="bi bi-speedometer2"></i> ANALYTICS DA MOTO</small>
-                <button onclick="abrirModalKm()" class="btn btn-sm btn-info-soft fw-bold py-1 px-3">Fechar KM do Dia</button>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-speedometer2 text-warning"></i>
+                    <span class="text-white fw-bold small">DRIVER ANALYTICS</span>
+                </div>
+                <button onclick="abrirModalKm()" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">Fechar
+                    KM</button>
             </div>
-            <div class="row g-2 mb-3">
-                <div class="col-6 text-center border-end border-secondary"><h5 class="mb-0 text-white" id="valKm">0</h5><small class="text-muted" style="font-size:0.7rem">KM TOTAL</small></div>
-                <div class="col-6 text-center"><h5 class="mb-0 text-white" id="valLitros">0</h5><small class="text-muted" style="font-size:0.7rem">LITROS TOTAL</small></div>
-            </div>
-            <hr class="border-secondary opacity-25">
-            <div class="row g-2">
-                <div class="col-6 text-center"><h5 class="mb-0 text-warning" id="valKml">0.0</h5><small class="text-muted" style="font-size:0.7rem">AUTONOMIA (KM/L)</small></div>
-                <div class="col-6 text-center border-start border-secondary"><h5 class="mb-0 text-success" id="valRend">R$ 0.00</h5><small class="text-muted" style="font-size:0.7rem">LUCRO POR KM</small></div>
+            <div class="row g-2 text-center">
+                <div class="col-6 border-end border-secondary border-opacity-25">
+                    <h5 class="mb-0 text-white" id="valKm">0</h5>
+                    <small class="text-muted" style="font-size:0.7rem">KM TOTAL</small>
+                </div>
+                <div class="col-6">
+                    <h5 class="mb-0 text-white" id="valLitros">0</h5>
+                    <small class="text-muted" style="font-size:0.7rem">LITROS</small>
+                </div>
+                <div class="col-12">
+                    <hr class="my-2 border-secondary opacity-25">
+                </div>
+                <div class="col-6 border-end border-secondary border-opacity-25">
+                    <h5 class="mb-0 text-warning" id="valKml">0.0</h5>
+                    <small class="text-muted" style="font-size:0.7rem">KM/L</small>
+                </div>
+                <div class="col-6">
+                    <h5 class="mb-0 text-success" id="valRend">R$ 0.00</h5>
+                    <small class="text-muted" style="font-size:0.7rem">LUCRO/KM</small>
+                </div>
             </div>
         </div>
 
-        <div class="row g-3 mb-3">
+        <!-- Charts -->
+        <div class="row g-3 mb-4">
             <div class="col-md-8">
                 <div class="glass-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-secondary small mb-0">Fluxo</h6>
-                        <select id="chartDays" onchange="atualizarTela()" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto; font-size: 0.8rem;">
+                        <h6 class="text-muted small fw-bold mb-0 text-uppercase">Fluxo de Caixa</h6>
+                        <select id="chartDays"
+                            class="form-select form-select-sm bg-dark text-white border-secondary w-auto py-1"
+                            style="font-size: 0.75rem;">
                             <option value="7">7 Dias</option>
                             <option value="15">15 Dias</option>
                             <option value="30">30 Dias</option>
                         </select>
                     </div>
-                    <div style="height: 180px;"><canvas id="graficoSemanal"></canvas></div>
+                    <div style="height: 200px;"><canvas id="graficoSemanal"></canvas></div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="glass-card p-3 h-100">
-                    <h6 class="text-secondary small mb-3">Categorias (30d)</h6>
-                    <div style="height: 180px; position: relative;"><canvas id="graficoPizza"></canvas></div>
+                    <h6 class="text-muted small fw-bold mb-3 text-uppercase">Categorias (30d)</h6>
+                    <div style="height: 200px; position: relative;"><canvas id="graficoPizza"></canvas></div>
                 </div>
             </div>
         </div>
 
+        <!-- Actions -->
         <div class="row g-2 mb-4">
-            <div class="col-6"><button type="button" onclick="abrirModalTrans('receita')" class="btn btn-mobile-lg btn-success-soft"><i class="bi bi-arrow-up-circle-fill"></i> Entrada</button></div>
-            <div class="col-6"><button type="button" onclick="abrirModalTrans('despesa')" class="btn btn-mobile-lg btn-danger-soft"><i class="bi bi-arrow-down-circle-fill"></i> Saída</button></div>
+            <div class="col-6"><button onclick="abrirModalTrans('receita')"
+                    class="btn btn-mobile-lg btn-success-soft"><i class="bi bi-arrow-up-circle-fill"></i>
+                    Entrada</button></div>
+            <div class="col-6"><button onclick="abrirModalTrans('despesa')" class="btn btn-mobile-lg btn-danger-soft"><i
+                        class="bi bi-arrow-down-circle-fill"></i> Saída</button></div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-end mb-2">
-            <h6 class="text-white mb-0">Histórico</h6>
-            <div class="btn-group btn-group-sm">
-                <button type="button" onclick="filtrar('todos')" class="btn btn-outline-secondary active btn-filter" data-f="todos">T</button>
-                <button type="button" onclick="filtrar('receita')" class="btn btn-outline-secondary btn-filter" data-f="receita"><i class="bi bi-arrow-up"></i></button>
-                <button type="button" onclick="filtrar('despesa')" class="btn btn-outline-secondary btn-filter" data-f="despesa"><i class="bi bi-arrow-down"></i></button>
+        <!-- Transaction History -->
+        <div class="glass-card px-0 py-2">
+            <div class="d-flex justify-content-between align-items-center px-3 mb-2">
+                <h6 class="text-white mb-0 fw-bold">Histórico</h6>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary btn-filter active px-3" data-f="todos">T</button>
+                    <button class="btn btn-outline-secondary btn-filter px-3" data-f="receita"><i
+                            class="bi bi-arrow-up"></i></button>
+                    <button class="btn btn-outline-secondary btn-filter px-3" data-f="despesa"><i
+                            class="bi bi-arrow-down"></i></button>
+                </div>
             </div>
+            <div id="listaHistorico"></div>
         </div>
-        <div class="glass-card px-3 py-1" id="listaHistorico"></div>
     </div>
 
-    <div class="modal fade" id="modalNovo" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Novo Bolso</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
-        <form onsubmit="event.preventDefault(); criarNegocio(); return false;">
-            <label class="text-secondary small">Nome</label><input id="nNome" class="form-control bg-dark text-white border-secondary mb-3 py-3" placeholder="Ex: Pessoal..." required>
-            <label class="text-secondary small">Tipo</label><select id="nTipo" class="form-select bg-dark text-white border-secondary mb-3 py-3"><option value="PADRAO">Padrão</option><option value="MOTORISTA">Motorista de App</option></select>
-            <label class="text-secondary small">Cor</label><div class="mb-4"><input id="nCor" type="color" class="form-control form-control-color bg-dark border-secondary" value="#0d6efd" style="width: 50px;"></div>
-            <button type="submit" class="btn btn-primary btn-lg w-100">Criar</button>
-        </form>
-    </div></div></div></div>
+    <!-- MODALS -->
 
-    <div class="modal fade" id="modalTrans" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title" id="transTitulo">...</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
-        <form onsubmit="event.preventDefault(); salvarTrans(); return false;">
-            <input type="hidden" id="tTipo">
-            <label class="text-secondary small">Valor</label><div class="input-group mb-3"><span class="input-group-text bg-secondary border-secondary text-white">R$</span><input id="tVal" type="number" class="form-control bg-dark text-white border-secondary py-3 fs-5 fw-bold" placeholder="0.00" inputmode="decimal" required></div>
-            <label class="text-secondary small">Categoria</label><select id="tTag" class="form-select bg-dark text-white border-secondary mb-3 py-3"></select>
-            <label class="text-secondary small">Descrição</label><input id="tDesc" class="form-control bg-dark text-white border-secondary mb-3 py-3" required>
-            <label class="text-secondary small">Data</label><input id="tData" type="date" class="form-control bg-dark text-white border-secondary mb-3 py-3" required>
-            <div id="inputsDriver" class="p-3 mb-4 rounded border border-secondary bg-black bg-opacity-25" style="display:none;"><div id="divKm" class="mb-3"><label class="text-warning small fw-bold">KM RODADO</label><input id="tKm" type="number" class="form-control bg-dark text-white border-warning py-2" placeholder="0"></div><div id="divLitros"><label class="text-danger small fw-bold">LITROS ABASTECIDOS</label><input id="tLitros" type="number" class="form-control bg-dark text-white border-danger py-2" placeholder="0"></div></div>
-            <button type="submit" class="btn btn-primary btn-lg w-100">Salvar</button>
-        </form>
-    </div></div></div></div>
-
-    <div class="modal fade" id="modalKm" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Fechar KM</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
-        <form onsubmit="event.preventDefault(); salvarKm(); return false;">
-            <div class="alert alert-info bg-dark border-info text-info small"><i class="bi bi-info-circle"></i> Informe o total rodado. Valor financeiro será R$ 0.</div>
-            <label class="text-warning small fw-bold">KM RODADO</label><input id="kKm" type="number" class="form-control bg-dark text-white border-warning py-3 fs-3 fw-bold mb-4" placeholder="0" required>
-            <label class="text-secondary small">Data</label><input id="kData" type="date" class="form-control bg-dark text-white border-secondary mb-4 py-3">
-            <button type="submit" class="btn btn-info btn-lg w-100 fw-bold">Salvar Rodagem</button>
-        </form>
-    </div></div></div></div>
-
-    <div class="modal fade" id="modalFixas" tabindex="-1"><div class="modal-dialog modal-fullscreen-sm-down"><div class="modal-content bg-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Contas Fixas</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body">
-        <form onsubmit="event.preventDefault(); criarFixa(); return false;">
-            <div class="input-group mb-4">
-                <input id="fNome" class="form-control bg-dark text-white border-secondary" placeholder="Nome (Ex: Aluguel)" required>
-                <select id="fTag" class="form-select bg-dark text-white border-secondary" style="max-width: 130px;"><option value="Moradia">Moradia</option><option value="Trabalho">Trabalho</option><option value="Educação">Educação</option><option value="Lazer">Lazer</option></select>
-                <input id="fValor" type="number" class="form-control bg-dark text-white border-secondary" placeholder="R$" required>
-                <button type="submit" class="btn btn-outline-light"><i class="bi bi-plus-lg"></i></button>
+    <!-- Novo Negocio -->
+    <div class="modal fade" id="modalNovo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Carteira</h5><button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNovoNegocio">
+                        <label class="text-muted small mb-1">Nome</label>
+                        <input id="nNome" class="form-control mb-3" placeholder="Ex: Principal" required>
+                        <label class="text-muted small mb-1">Tipo</label>
+                        <select id="nCategoria" class="form-select mb-3">
+                            <option value="PADRAO">Padrão</option>
+                            <option value="MOTORISTA">Motorista de App</option>
+                        </select>
+                        <label class="text-muted small mb-1">Cor</label>
+                        <input id="nCor" type="color" class="form-control form-control-color w-100 mb-4" value="#3b82f6"
+                            style="max-width: 60px;">
+                        <button type="submit" class="btn btn-primary w-100 py-3">Criar Carteira</button>
+                    </form>
+                </div>
             </div>
-        </form>
-        <h6 class="text-secondary small mb-2">LISTA</h6><ul id="listaFixas" class="list-group list-group-flush rounded border border-secondary"></ul>
-    </div></div></div></div>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const API = ""; 
-        let ATUAL_ID = null; let ATUAL_TIPO = null; let CACHE_DATA = null; 
-        let CHART_LINE = null; let CHART_PIE = null;
+    <!-- Nova Transacao -->
+    <div class="modal fade" id="modalTrans" tabindex="-1">
+        <div class="modal-dialog modal-dialog-bottom modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transTitulo">Transação</h5><button type="button"
+                        class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formTransacao">
+                        <input type="hidden" id="tTipo">
 
-        document.getElementById('tData').valueAsDate = new Date();
-        document.getElementById('kData').valueAsDate = new Date();
-
-        async function carregarHome() {
-            document.getElementById('viewHome').style.display='block'; document.getElementById('viewDash').style.display='none';
-            try {
-                const res = await fetch(`${API}/negocios`); const lista = await res.json();
-                const div = document.getElementById('listaNegocios'); div.innerHTML = "";
-                if(lista.length === 0) div.innerHTML = "<div class='text-center text-muted mt-5'>Sem carteiras.<br>Crie uma no botão +</div>";
-                lista.forEach(n => {
-                    div.innerHTML += `
-                        <div class="col-md-6 col-lg-4">
-                            <div class="wallet-card" onclick="abrirDash(${n.id})" style="border-left: 6px solid ${n.cor}">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="fw-bold mb-0">${n.nome}</h5>
-                                    <span class="badge bg-dark border border-secondary text-secondary">${n.categoria}</span>
-                                </div>
-                                <h2 class="mb-0 ${n.saldo>=0?'text-success':'text-danger'}">R$ ${n.saldo.toFixed(2)}</h2>
+                        <div class="mb-4">
+                            <label class="text-muted small mb-1">Valor</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-secondary">R$</span>
+                                <input id="tVal" type="number" step="0.01" class="form-control fs-4 fw-bold text-white"
+                                    placeholder="0.00" required>
                             </div>
-                        </div>`;
-                });
-            } catch (e) { console.error(e); }
-        }
+                        </div>
 
-        async function criarNegocio() {
-            await fetch(`${API}/negocios`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({nome: document.getElementById('nNome').value, categoria: document.getElementById('nTipo').value, cor: document.getElementById('nCor').value})});
-            bootstrap.Modal.getInstance(document.getElementById('modalNovo')).hide(); carregarHome();
-        }
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label class="text-muted small mb-1">Descrição</label>
+                                <input id="tDesc" class="form-control" placeholder="Ex: Mercado" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="text-muted small mb-1">Categoria</label>
+                                <select id="tTag" class="form-select"></select>
+                            </div>
+                            <div class="col-6">
+                                <label class="text-muted small mb-1">Data</label>
+                                <input id="tData" type="date" class="form-control" required>
+                            </div>
+                        </div>
 
-        async function abrirDash(id) { ATUAL_ID = id; document.getElementById('viewHome').style.display='none'; document.getElementById('viewDash').style.display='block'; await atualizarTela(); }
+                        <div id="inputsDriver" class="p-3 mb-4 rounded border border-secondary bg-black bg-opacity-25"
+                            style="display:none;">
+                            <div id="divKm" class="mb-3">
+                                <label class="text-warning small fw-bold">KM RODADO</label>
+                                <input id="tKm" type="number" class="form-control border-warning text-warning"
+                                    placeholder="0">
+                            </div>
+                            <div id="divLitros">
+                                <label class="text-danger small fw-bold">LITROS</label>
+                                <input id="tLitros" type="number" step="0.01"
+                                    class="form-control border-danger text-danger" placeholder="0">
+                            </div>
+                        </div>
 
-        async function atualizarTela() {
-            const dias = document.getElementById('chartDays').value;
-            const res = await fetch(`${API}/negocios/${ATUAL_ID}/dashboard?dias=${dias}`);
-            CACHE_DATA = await res.json(); const n = CACHE_DATA.negocio; ATUAL_TIPO = n.categoria;
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold">Salvar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            document.getElementById('dashTitle').innerText = n.nome;
-            document.getElementById('dashCategoria').innerText = n.categoria;
-            document.getElementById('valRec').innerText = `R$ ${CACHE_DATA.kpis.receita.toFixed(0)}`;
-            document.getElementById('valDesp').innerText = `R$ ${CACHE_DATA.kpis.despesa.toFixed(0)}`;
-            document.getElementById('valSaldo').innerText = `R$ ${CACHE_DATA.kpis.saldo.toFixed(2)}`;
+    <!-- Fechar KM -->
+    <div class="modal fade" id="modalKm" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Fechar KM Diário</h5><button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formKm">
+                        <div class="alert alert-info small py-2"><i class="bi bi-info-circle me-2"></i> Registra apenas
+                            rodagem. Finanças R$ 0.</div>
+                        <label class="text-warning small fw-bold mb-1">KM DO DIA</label>
+                        <input id="kKm" type="number" class="form-control fs-2 fw-bold text-warning border-warning mb-3"
+                            placeholder="0" required>
+                        <label class="text-muted small mb-1">Data</label>
+                        <input id="kData" type="date" class="form-control mb-4">
+                        <button type="submit" class="btn btn-info w-100 py-3 rounded-pill fw-bold">Registrar
+                            Rodagem</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            const pMot = document.getElementById('painelMotorista');
-            if(n.categoria === 'MOTORISTA') {
-                pMot.style.display='block'; document.getElementById('valKm').innerText = CACHE_DATA.kpis.total_km; document.getElementById('valLitros').innerText = CACHE_DATA.kpis.total_litros;
-                document.getElementById('valKml').innerText = CACHE_DATA.kpis.autonomia.toFixed(1) + ' km/L';
-                document.getElementById('valRend').innerText = 'R$ ' + CACHE_DATA.kpis.rendimento.toFixed(2);
-            } else { pMot.style.display='none'; }
+    <!-- Fixas -->
+    <div class="modal fade" id="modalFixas" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Despesas Fixas</h5><button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formFixa" class="mb-4">
+                        <label class="text-muted small mb-1">Nova Fixa</label>
+                        <div class="input-group">
+                            <input id="fNome" class="form-control" placeholder="Nome" required style="width: 35%;">
+                            <select id="fTag" class="form-select" style="width: 25%;">
+                                <option>Moradia</option>
+                                <option>Trabalho</option>
+                                <option>Educação</option>
+                                <option>Lazer</option>
+                            </select>
+                            <input id="fValor" type="number" class="form-control" placeholder="R$" required
+                                style="width: 20%;">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                    </form>
 
-            renderChartLine(CACHE_DATA.grafico);
-            renderChartPie(CACHE_DATA.pizza);
-            renderLista(CACHE_DATA.extrato);
-        }
+                    <label class="text-muted small mb-2 d-block text-uppercase fw-bold">Lista de Contas</label>
+                    <ul id="listaFixas" class="list-group list-group-flush rounded border border-secondary"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function renderChartLine(dados) {
-            const ctx = document.getElementById('graficoSemanal').getContext('2d');
-            if(CHART_LINE) CHART_LINE.destroy();
-            CHART_LINE = new Chart(ctx, {
-                type: 'line', data: { labels: dados.labels, datasets: [{label:'Entrada', data:dados.receitas, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', fill:true, tension:0.4}, {label:'Saída', data:dados.despesas, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.1)', fill:true, tension:0.4}] },
-                options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}} }
-            });
-        }
-
-        function renderChartPie(dados) {
-            const ctx = document.getElementById('graficoPizza').getContext('2d');
-            if(CHART_PIE) CHART_PIE.destroy();
-            const labels = Object.keys(dados); const values = Object.values(dados);
-            const cores = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899'];
-            CHART_PIE = new Chart(ctx, {
-                type: 'doughnut', data: { labels: labels, datasets: [{data: values, backgroundColor: cores, borderWidth: 0}] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', boxWidth: 10, font:{size:10} } } } }
-            });
-        }
-
-        function filtrar(tipo) {
-            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-            event.target.closest('button').classList.add('active');
-            if(tipo === 'todos') renderLista(CACHE_DATA.extrato);
-            else renderLista(CACHE_DATA.extrato.filter(t => t.tipo === tipo));
-        }
-
-        function renderLista(lista) {
-            const div = document.getElementById('listaHistorico'); div.innerHTML = "";
-            if(lista.length === 0) div.innerHTML = "<div class='text-center py-3 text-secondary small'>Sem registros</div>";
-            lista.forEach(t => {
-                let icone = t.tipo==='receita' ? '<i class="bi bi-arrow-up-right-circle-fill text-success fs-4"></i>' : (t.tipo==='despesa' ? '<i class="bi bi-arrow-down-left-circle-fill text-danger fs-4"></i>' : '<i class="bi bi-speedometer text-info fs-4"></i>');
-                let corVal = t.tipo==='receita' ? 'text-success' : (t.tipo==='despesa' ? 'text-danger' : 'text-info');
-                let extraInfo = (ATUAL_TIPO==='MOTORISTA' && t.km > 0) ? `<span class="badge bg-warning text-dark ms-2">${t.km}km</span>` : '';
-                let tagBadge = t.tag ? `<span class="badge bg-secondary ms-1" style="font-size:0.6rem">${t.tag}</span>` : '';
-                div.innerHTML += `<div class="transaction-item"><div class="d-flex align-items-center gap-3">${icone}<div><div class="trans-desc text-white">${t.descricao} ${extraInfo} ${tagBadge}</div><div class="trans-date">${t.data}</div></div></div><div class="d-flex align-items-center gap-2"><div class="trans-val ${corVal}">R$ ${t.valor.toFixed(2)}</div><button type="button" onclick="delTrans(${t.id})" class="btn btn-sm text-secondary"><i class="bi bi-x"></i></button></div></div>`;
-            });
-        }
-
-        function abrirModalTrans(tipo) {
-            document.getElementById('tTipo').value = tipo;
-            document.getElementById('transTitulo').innerText = tipo === 'receita' ? "Entrada" : "Saída";
-            document.getElementById('inputsDriver').style.display = 'none';
-            
-            const sel = document.getElementById('tTag'); sel.innerHTML = ""; let tags = [];
-            if(tipo === 'receita') { tags = ['Vendas', 'Salário', 'Corrida App', 'Gorjeta', 'Outros']; } 
-            else { if(ATUAL_TIPO === 'MOTORISTA') { tags = ['Combustível', 'Manutenção', 'Aluguel Moto', 'Alimentação', 'Multa', 'Outros']; } else { tags = ['Alimentação', 'Moradia', 'Lazer', 'Transporte', 'Saúde', 'Educação', 'Outros']; } }
-            tags.forEach(t => { sel.innerHTML += `<option value="${t}">${t}</option>` });
-
-            if(ATUAL_TIPO === 'MOTORISTA') {
-                document.getElementById('inputsDriver').style.display = 'block';
-                document.getElementById('divKm').style.display = tipo==='receita'?'block':'none';
-                document.getElementById('divLitros').style.display = tipo==='despesa'?'block':'none';
-            }
-            new bootstrap.Modal(document.getElementById('modalTrans')).show();
-        }
-
-        async function salvarTrans() {
-            const desc = document.getElementById('tDesc').value; const val = document.getElementById('tVal').value;
-            if(!desc || !val) return alert("Preencha valor e descrição");
-            await fetch(`${API}/transacoes`, {method:"POST", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({
-                    negocio_id: ATUAL_ID, tipo: document.getElementById('tTipo').value, descricao: desc, valor: val, data: document.getElementById('tData').value, 
-                    km: document.getElementById('tKm').value || 0, litros: document.getElementById('tLitros').value || 0,
-                    tag: document.getElementById('tTag').value
-                })});
-            bootstrap.Modal.getInstance(document.getElementById('modalTrans')).hide();
-            document.getElementById('tDesc').value=""; document.getElementById('tVal').value=""; document.getElementById('tKm').value=""; document.getElementById('tLitros').value="";
-            atualizarTela();
-        }
-        
-        function abrirModalKm() { new bootstrap.Modal(document.getElementById('modalKm')).show(); }
-        async function salvarKm() {
-            const km = document.getElementById('kKm').value; if(!km) return alert("Informe a quilometragem");
-            await fetch(`${API}/transacoes`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ negocio_id: ATUAL_ID, tipo: "neutro", descricao: "Fechamento KM", valor: 0, data: document.getElementById('kData').value, km: km, litros: 0, tag: "Rodagem" })});
-            bootstrap.Modal.getInstance(document.getElementById('modalKm')).hide(); document.getElementById('kKm').value=""; atualizarTela();
-        }
-
-        async function delTrans(id) { if(confirm("Apagar?")) { await fetch(`${API}/transacoes/${id}`, {method:"DELETE"}); atualizarTela(); } }
-        
-        function abrirModalFixas() { loadFixas(); new bootstrap.Modal(document.getElementById('modalFixas')).show(); }
-        async function loadFixas() { const res = await fetch(`${API}/negocios/${ATUAL_ID}/fixas`); const lista = await res.json(); const ul = document.getElementById('listaFixas'); ul.innerHTML = ""; lista.forEach(f => { let btn = f.pago_neste_mes ? `<button type="button" class="btn btn-sm btn-secondary" disabled>Pago ✅</button>` : `<button type="button" onclick="pagarFixa(${f.id})" class="btn btn-sm btn-success">Pagar</button>`; ul.innerHTML += `<li class="list-group-item bg-dark border-secondary text-white d-flex justify-content-between align-items-center"><span>${f.nome} <small class="text-secondary">(${f.tag})</small><br>R$${f.valor}</span><div class="d-flex gap-2">${btn}<button type="button" onclick="delFixa(${f.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></div></li>`; }); }
-        async function criarFixa() { await fetch(`${API}/fixas`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ nome:document.getElementById('fNome').value, valor:document.getElementById('fValor').value, negocio_id:ATUAL_ID, tag: document.getElementById('fTag').value })}); document.getElementById('fNome').value=""; document.getElementById('fValor').value=""; loadFixas(); }
-        async function pagarFixa(id) { const res = await fetch(`${API}/fixas/${id}/pagar`, {method:"POST"}); if(res.ok){ alert("Pago!"); loadFixas(); atualizarTela(); } else { alert("Já pago este mês!"); } }
-        async function delFixa(id) { await fetch(`${API}/fixas/${id}`, {method:"DELETE"}); loadFixas(); }
-        async function deletarNegocio() { if(confirm("Apagar carteira?")) { await fetch(`${API}/negocios/${ATUAL_ID}`, {method:"DELETE"}); voltarHome(); } }
-        function voltarHome() { document.getElementById('viewDash').style.display='none'; carregarHome(); }
-
-        carregarHome();
-    </script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
+
 </html>
