@@ -1,43 +1,85 @@
 from typing import List, Optional
-from datetime import date
+from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
-class Negocio(SQLModel, table=True):
+# --- USER ---
+class UserBase(SQLModel):
+    username: str = Field(index=True, unique=True)
+    email: Optional[str] = None
+
+class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    hashed_password: str
+    
+    # Relationships
+    owned_negocios: List["Negocio"] = Relationship(back_populates="owner")
+    shared_entries: List["NegocioShare"] = Relationship(back_populates="user")
+
+# --- SHARES ---
+class NegocioShare(SQLModel, table=True):
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    negocio_id: int = Field(foreign_key="negocio.id", primary_key=True)
+    role: str = "editor"
+    
+    user: User = Relationship(back_populates="shared_entries")
+    negocio: "Negocio" = Relationship(back_populates="shares")
+
+# --- INVITES ---
+class InviteCode(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(index=True, unique=True)
+    negocio_id: int = Field(foreign_key="negocio.id")
+    expires_at: datetime
+    active: bool = True
+
+# --- NEGOCIO ---
+class NegocioBase(SQLModel):
     nome: str
     categoria: str = "PADRAO"
     cor: str = "#0d6efd"
-    
-    # Relationships
-    transacoes: List["Transacao"] = Relationship(back_populates="negocio")
-    fixas: List["DespesaFixa"] = Relationship(back_populates="negocio")
 
-class DespesaFixa(SQLModel, table=True):
+class Negocio(NegocioBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    negocio_id: int = Field(foreign_key="negocio.id")
+    owner_id: int = Field(foreign_key="user.id")
+    
+    owner: User = Relationship(back_populates="owned_negocios")
+    shares: List[NegocioShare] = Relationship(back_populates="negocio")
+    
+    transacoes: List["Transacao"] = Relationship(back_populates="negocio", sa_relationship_kwargs={"cascade": "all, delete"})
+    fixas: List["DespesaFixa"] = Relationship(back_populates="negocio", sa_relationship_kwargs={"cascade": "all, delete"})
+
+# --- FIXAS ---
+class DespesaFixaBase(SQLModel):
     nome: str
     valor: float
     tag: str = "Fixas"
     dia_vencimento: int = 1
-    
-    # Relationships
-    negocio: Optional[Negocio] = Relationship(back_populates="fixas")
 
-class Transacao(SQLModel, table=True):
+class DespesaFixaCreate(DespesaFixaBase):
+    negocio_id: int
+
+class DespesaFixa(DespesaFixaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     negocio_id: int = Field(foreign_key="negocio.id")
-    fixa_id: Optional[int] = None 
     
+    negocio: Optional[Negocio] = Relationship(back_populates="fixas")
+
+# --- TRANSACOES ---
+class TransacaoBase(SQLModel):
     tag: str = "Geral" 
-    
     descricao: str
     valor: float
-    tipo: str  # 'receita', 'despesa', 'neutro'
-    data: date
-    
-    # Driver Specific
+    tipo: str  
+    data: str 
     km: Optional[float] = 0.0
     litros: Optional[float] = 0.0
+    fixa_id: Optional[int] = None 
+
+class TransacaoCreate(TransacaoBase):
+    negocio_id: int
+
+class Transacao(TransacaoBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    negocio_id: int = Field(foreign_key="negocio.id")
     
-    # Relationships
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
