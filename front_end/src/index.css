@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
+}
+
+.animate-toast-progress {
+  animation: toast-progress 5s linear forwards;
+}
+
+@layer base {
+  body {
+    /* Default (Light Mode) bases */
+    @apply font-sans antialiased text-zinc-900 bg-gray-50 transition-colors duration-300;
+  }
+
+  /* Dark Mode Overrides (applied when 'dark' class is on html) */
+  html.dark body {
+    @apply text-zinc-100 bg-zinc-950;
+  }
+}
+
+.glass-card {
+  /* Default (Light) */
+  @apply bg-white/80 backdrop-blur-md border border-gray-200 shadow-sm transition-all duration-300;
+}
+
+html.dark .glass-card {
+  /* Dark Mode */
+  @apply bg-zinc-900/60 border-white/5 shadow-xl;
+}
+
+.glass-card:hover {
+  @apply border-blue-500/30;
+}

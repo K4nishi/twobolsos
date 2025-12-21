@@ -1,12 +1,29 @@
-# Ignorar arquivos do Python e Ambiente Virtual
+# Python
 venv/
 __pycache__/
 *.pyc
+*.pyo
+.env
 
-# Ignorar Banco de Dados (Segurança!)
+# Database (Security!)
 *.db
 *.sqlite3
 
-# Ignorar configurações da IDE
+# Node.js
+node_modules/
+dist/
+build/
+
+# IDE
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

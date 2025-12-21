@@ -9,6 +9,7 @@ connect_args = {"check_same_thread": False}
 engine = create_engine(SQLITE_URL, connect_args=connect_args)
 
 def init_db():
+    from app import models  # Ensure models are registered
     SQLModel.metadata.create_all(engine)
 
 def get_session() -> Generator[Session, None, None]:

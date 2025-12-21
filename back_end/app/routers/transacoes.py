@@ -15,15 +15,21 @@ def check_edit_permission(session, user_id, negocio_id):
     n = session.get(Negocio, negocio_id)
     if not n: return False
     if n.owner_id == user_id: return True
-    # Check share
-    share = next((s for s in n.shares if s.user_id == user_id), None)
+    # Check share explicitly
+    share = session.query(NegocioShare).filter(
+        NegocioShare.negocio_id == negocio_id, 
+        NegocioShare.user_id == user_id
+    ).first()
     if share and share.role in ['admin', 'editor']: return True
     return False
 
 def get_wallet_members(session, negocio_id):
     n = session.get(Negocio, negocio_id)
+    if not n: return []
     ids = [n.owner_id]
-    for s in n.shares:
+    # Explicit query
+    shares = session.query(NegocioShare).filter(NegocioShare.negocio_id == negocio_id).all()
+    for s in shares:
         ids.append(s.user_id)
     return ids
 

@@ -147,6 +147,7 @@ def join_negocio(code: str, background_tasks: BackgroundTasks, session: Session 
     invite = session.query(InviteCode).filter(InviteCode.code == code, InviteCode.active == True).first()
     if not invite:
         raise HTTPException(404, "Código inválido")
+    
     if invite.expires_at < datetime.utcnow():
         raise HTTPException(400, "Código expirado")
     
@@ -160,21 +161,31 @@ def join_negocio(code: str, background_tasks: BackgroundTasks, session: Session 
         share = NegocioShare(user_id=user.id, negocio_id=invite.negocio_id, role="editor")
         session.add(share)
         session.commit()
-        # Notify owner/others?
-        background_tasks.add_task(manager.send_personal_message, "UPDATE_LIST", user.id)
+    
+    # Notify ALL members including owner
+    shares = session.query(NegocioShare).filter(NegocioShare.negocio_id == n.id).all()
+    all_ids = [n.owner_id] + [s.user_id for s in shares]
+    background_tasks.add_task(manager.broadcast_to_wallet, "UPDATE_DASHBOARD", all_ids)
     
     return {"msg": "Entrou no bolso com sucesso!", "negocio": n.nome}
 
 @router.get("/{id}/members")
 def list_members(id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
     n = session.get(Negocio, id)
+    if not n:
+        raise HTTPException(404, "Negocio não encontrado")
+        
     # Allow if member or owner
     is_owner = n.owner_id == user.id
     share = session.query(NegocioShare).filter(NegocioShare.negocio_id == id, NegocioShare.user_id == user.id).first()
-    if not is_owner and not share: raise HTTPException(403, "Sem permissão")
+    if not is_owner and not share: 
+        raise HTTPException(403, "Sem permissão")
     
     shares = session.query(NegocioShare).filter(NegocioShare.negocio_id == id).all()
     members = []
+    # Add Owner to the list for visibility
+    members.append({"user_id": n.owner_id, "username": n.owner.username, "role": "owner"})
+    
     for s in shares:
         members.append({"user_id": s.user_id, "username": s.user.username, "role": s.role})
     return members
@@ -184,7 +195,7 @@ class RoleUpdate(BaseModel):
     role: str
 
 @router.patch("/{id}/members/{user_id}")
-def update_member_role(id: int, user_id: int, role_data: RoleUpdate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+def update_member_role(id: int, user_id: int, role_data: RoleUpdate, background_tasks: BackgroundTasks, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
     n = session.get(Negocio, id)
     if n.owner_id != user.id:
         raise HTTPException(403, "Apenas dono pode gerenciar membros")
@@ -199,10 +210,16 @@ def update_member_role(id: int, user_id: int, role_data: RoleUpdate, session: Se
     share.role = role_data.role
     session.add(share)
     session.commit()
+
+    # Notify ALL members
+    shares = session.query(NegocioShare).filter(NegocioShare.negocio_id == id).all()
+    all_ids = [n.owner_id] + [s.user_id for s in shares]
+    background_tasks.add_task(manager.broadcast_to_wallet, "UPDATE_DASHBOARD", all_ids)
+
     return {"ok": True}
 
 @router.delete("/{id}/members/{user_id}")
-def remove_member(id: int, user_id: int, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+def remove_member(id: int, user_id: int, background_tasks: BackgroundTasks, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
     n = session.get(Negocio, id)
     if n.owner_id != user.id:
         raise HTTPException(403, "Apenas dono pode remover membros")
@@ -211,4 +228,12 @@ def remove_member(id: int, user_id: int, session: Session = Depends(get_session)
     if share:
         session.delete(share)
         session.commit()
+    
+    # Notify ALL members (user_id is removed but might need to know? well, dashboard will just fail next time, that's fine. Others need update)
+    shares = session.query(NegocioShare).filter(NegocioShare.negocio_id == id).all()
+    all_ids = [n.owner_id] + [s.user_id for s in shares]
+    # Optionally force update on the removed user too so they get kicked out or UI updates
+    all_ids.append(user_id) 
+    background_tasks.add_task(manager.broadcast_to_wallet, "UPDATE_DASHBOARD", all_ids)
+
     return {"ok": True}
