@@ -83,3 +83,6 @@ class Transacao(TransacaoBase, table=True):
     negocio_id: int = Field(foreign_key="negocio.id")
     
     negocio: Optional[Negocio] = Relationship(back_populates="transacoes")
+    
+    created_by_id: Optional[int] = Field(foreign_key="user.id", default=None)
+    created_by: Optional["User"] = Relationship()

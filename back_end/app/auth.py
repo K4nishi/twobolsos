@@ -50,3 +50,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
     if user is None:
         raise credentials_exception
     return user
+
+def get_user_from_token(token: str, session: Session):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None: return None
+        return session.query(User).filter(User.username == username).first()
+    except:
+        return None

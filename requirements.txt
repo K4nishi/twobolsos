@@ -1,4 +1,8 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlmodel
 sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+websockets

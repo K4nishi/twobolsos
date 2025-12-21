@@ -1,10 +1,25 @@
 import { api } from './api.js';
+import { SocketClient } from './socket.js';
+
+// WS Client
+const ws = new SocketClient('ws://127.0.0.1:8000/ws', (msg) => {
+    if (msg === 'UPDATE_LIST') {
+        loadHome();
+        showToast("Lista atualizada!", "info");
+    } else if (msg === 'UPDATE_DASHBOARD') {
+        if (state.currentView === 'dash' && state.currentWalletId) {
+            loadDashboard(state.currentWalletId);
+            showToast("Dados atualizados!", "info");
+        }
+    }
+});
 
 // State
 const state = {
     currentView: 'login', // Initial content
     currentWalletId: null,
     currentWalletCategory: null,
+    currentRole: 'viewer', // 'owner', 'editor', 'viewer'
     chartDays: 7,
     dashboardData: null,
     chartLine: null,
@@ -37,7 +52,8 @@ const dom = {
     },
     historico: document.getElementById('listaHistorico'),
     fixasList: document.getElementById('listaFixas'),
-    listaMembros: document.getElementById('listaMembros')
+    listaMembros: document.getElementById('listaMembros'),
+    actionsContainer: document.getElementById('actionsContainer')
 };
 
 // --- Initialization ---
@@ -46,6 +62,7 @@ function init() {
 
     // Check Auth
     if (api.token) {
+        ws.connect(api.token);
         switchView('home');
     } else {
         switchView('login');
@@ -109,6 +126,7 @@ function setupEventListeners() {
     window.abrirModalMembros = openMembrosModal;
     window.gerarConvite = handleGenerateInvite;
     window.removerMembro = handleRemoveMember;
+    window.updateMemberRole = handleUpdateMemberRole;
     window.abrirModalJoin = () => new bootstrap.Modal(document.getElementById('modalJoin')).show();
 
     // Default Dates
@@ -121,12 +139,9 @@ function switchView(viewName) {
     Object.values(views).forEach(el => el.style.display = 'none');
     views[viewName].style.display = 'block';
 
-    // Only load data if switching TO home (and not already there/loading?)
-    // Actually, simple is fine:
     if (viewName === 'home') loadHome();
 }
 
-// --- Auth ---
 // --- Auth ---
 function setLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
@@ -152,6 +167,7 @@ async function handleLogin(e) {
     try {
         const res = await api.login(u, p);
         api.setToken(res.access_token);
+        ws.connect(res.access_token);
         switchView('home');
         showToast(`Bem-vindo de volta, ${res.username}!`, 'success');
     } catch (err) {
@@ -264,11 +280,22 @@ async function loadDashboard(id) {
     const data = state.dashboardData;
     const n = data.negocio;
     state.currentWalletCategory = n.categoria;
+    state.currentRole = data.role; // Store role for permissions
 
     // Header
     dom.dashTitle.innerText = n.nome;
     dom.dashCategory.innerText = n.categoria;
     dom.dashRole.innerText = data.role.toUpperCase();
+
+    // Permissions: View/Edit Controls
+    const canEdit = ['owner', 'editor', 'admin'].includes(state.currentRole);
+    // Hide Actions if Viewer
+    const actionsRow = document.querySelector('.row.g-2.mb-4'); // Actions row
+    if (actionsRow) actionsRow.style.display = canEdit ? 'flex' : 'none';
+
+    // Hide "Fechar KM" specific logic
+    const closeKmBtn = document.querySelector('button[onclick="abrirModalKm()"]');
+    if (closeKmBtn) closeKmBtn.style.display = canEdit ? 'inline-block' : 'none';
 
     // KPIs
     dom.kpiRec.innerText = `R$ ${data.kpis.receita.toFixed(0)}`;
@@ -301,6 +328,7 @@ function filterHistory(filterType) {
 }
 
 function renderHistoryList(list) {
+    const canEdit = ['owner', 'editor', 'admin'].includes(state.currentRole);
     dom.historico.innerHTML = list.length ? '' : `<div class="text-center py-4 text-secondary small">Sem registros.</div>`;
     list.forEach(t => {
         let icon, colorClass;
@@ -311,6 +339,10 @@ function renderHistoryList(list) {
         const dateStr = new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR');
         const tagBadge = t.tag ? `<span class="badge bg-secondary opacity-50 ms-2" style="font-size: 0.65rem">${t.tag}</span>` : '';
         const kmBadge = t.km > 0 ? `<span class="badge bg-warning text-dark ms-2 fw-bold">${t.km} km</span>` : '';
+        const creator = t.created_by_name !== 'N/A' ? `<small class="text-muted d-block" style="font-size: 0.65rem">por ${t.created_by_name}</small>` : '';
+
+        // Conditionally show Delete
+        const delBtn = canEdit ? `<button onclick="delTrans(${t.id})" class="btn btn-link btn-sm text-secondary p-0"><i class="bi bi-trash"></i></button>` : '';
 
         dom.historico.innerHTML += `
             <div class="transaction-item fade-in">
@@ -319,11 +351,12 @@ function renderHistoryList(list) {
                     <div>
                         <div class="trans-desc text-white">${t.descricao} ${tagBadge} ${kmBadge}</div>
                         <div class="trans-meta"><i class="bi bi-calendar4"></i> ${dateStr}</div>
+                        ${creator}
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <div class="trans-val ${colorClass}">R$ ${t.valor.toFixed(2)}</div>
-                    <button onclick="delTrans(${t.id})" class="btn btn-link btn-sm text-secondary p-0"><i class="bi bi-trash"></i></button>
+                    ${delBtn}
                 </div>
             </div>`;
     });
@@ -358,18 +391,46 @@ function renderCharts(data) {
 // --- Sharing & Details ---
 async function openMembrosModal() {
     const list = await api.getMembers(state.currentWalletId);
+    // Actually, dash data doesn't have my user id easily.
+    // We can rely on state.currentRole === 'owner'.
+    const isOwner = state.currentRole === 'owner';
+
     dom.listaMembros.innerHTML = list.length == 0 ? '<div class="text-muted small text-center">Nenhum membro</div>' : '';
 
     list.forEach(m => {
+        let controls = '';
+        if (isOwner && m.role !== 'owner') {
+            controls = `
+                <select class="form-select form-select-sm bg-dark text-white border-secondary w-auto py-1 me-2" 
+                    onchange="updateMemberRole(${m.user_id}, this.value)" style="font-size: 0.75rem;">
+                    <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Editor</option>
+                    <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Visualizador</option>
+                </select>
+                <button onclick="removerMembro(${m.user_id})" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+             `;
+        } else {
+            controls = `<span class="badge bg-secondary ms-2">${m.role}</span>`;
+        }
+
         dom.listaMembros.innerHTML += `
             <div class="member-item">
-                <div><i class="bi bi-person-fill text-primary me-2"></i> ${m.username} <span class="badge bg-secondary ms-2">${m.role}</span></div>
-                <button onclick="removerMembro(${m.user_id})" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+                <div><i class="bi bi-person-fill text-primary me-2"></i> ${m.username}</div>
+                <div class="d-flex align-items-center">${controls}</div>
             </div>`;
     });
 
     document.getElementById('areaCodigo').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('modalMembros')).show();
+}
+
+async function handleUpdateMemberRole(userId, newRole) {
+    try {
+        await api.updateMemberRole(state.currentWalletId, userId, newRole);
+        showToast("Permissão atualizada!", "success");
+    } catch (e) {
+        showToast("Erro ao atualizar: " + e.message, "danger");
+        openMembrosModal(); // Revert/Refresh
+    }
 }
 
 async function handleGenerateInvite() {
@@ -385,7 +446,7 @@ async function handleRemoveMember(userId) {
     try {
         await api.removeMember(state.currentWalletId, userId);
         openMembrosModal(); // Reload List
-    } catch (e) { showToast(e.message, 'danger'); } // Often forbidden if not owner
+    } catch (e) { showToast(e.message, 'danger'); }
 }
 
 // ... Transacoes/Fixas handlers preserved ...
@@ -413,7 +474,18 @@ function openKmModal() { new bootstrap.Modal(document.getElementById('modalKm'))
 async function handleCreateKm(e) { e.preventDefault(); await api.createTransacao({ negocio_id: state.currentWalletId, tipo: 'neutro', descricao: 'Fechamento KM', valor: 0, data: document.getElementById('kData').value, km: document.getElementById('kKm').value, litros: 0, tag: 'Rodagem' }); bootstrap.Modal.getInstance(document.getElementById('modalKm')).hide(); e.target.reset(); loadDashboard(state.currentWalletId); }
 
 // Fixas
-async function updateFixasList() { const list = await api.getFixas(state.currentWalletId); const ul = document.getElementById('listaFixas'); ul.innerHTML = list.length ? '' : '<div class="text-center small my-3">Nenhuma despesa fixa</div>'; list.forEach(f => { const btn = f.pago_neste_mes ? `<button disabled class="btn btn-sm btn-dark border-success text-success">Pago</button>` : `<button onclick="pagarFixa(${f.id})" class="btn btn-sm btn-success">Pagar</button>`; ul.innerHTML += `<li class="list-group-item bg-dark border-secondary text-white d-flex justify-content-between"><div>${f.nome}<br><small>R$ ${f.valor}</small></div><div class="d-flex gap-2">${btn}<button onclick="delFixa(${f.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></div></li>`; }); }
+async function updateFixasList() {
+    // Fix permissions here too? For simplicity, hiding delete button if readonly
+    const canEdit = ['owner', 'editor', 'admin'].includes(state.currentRole);
+    const list = await api.getFixas(state.currentWalletId);
+    const ul = document.getElementById('listaFixas');
+    ul.innerHTML = list.length ? '' : '<div class="text-center small my-3">Nenhuma despesa fixa</div>';
+    list.forEach(f => {
+        const btn = f.pago_neste_mes ? `<button disabled class="btn btn-sm btn-dark border-success text-success">Pago</button>` : `<button onclick="pagarFixa(${f.id})" class="btn btn-sm btn-success" ${!canEdit ? 'disabled' : ''}>Pagar</button>`;
+        const del = canEdit ? `<button onclick="delFixa(${f.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>` : '';
+        ul.innerHTML += `<li class="list-group-item bg-dark border-secondary text-white d-flex justify-content-between"><div>${f.nome}<br><small>R$ ${f.valor}</small></div><div class="d-flex gap-2">${btn}${del}</div></li>`;
+    });
+}
 function openFixasModal() { updateFixasList(); new bootstrap.Modal(document.getElementById('modalFixas')).show(); }
 async function handleCreateFixa(e) { e.preventDefault(); await api.createFixa({ nome: document.getElementById('fNome').value, valor: document.getElementById('fValor').value, tag: document.getElementById('fTag').value, negocio_id: state.currentWalletId }); document.getElementById('fNome').value = ""; updateFixasList(); }
 async function handlePayFixa(id) { try { await api.payFixa(id); updateFixasList(); loadDashboard(state.currentWalletId); } catch (e) { showToast(e.message, 'danger'); } }

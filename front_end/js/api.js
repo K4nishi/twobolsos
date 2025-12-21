@@ -87,6 +87,7 @@ class TwoBolsosAPI {
     async joinNegocio(code) { return this._request(`/negocios/join?code=${code}`, "POST"); }
     async getMembers(id) { return this._request(`/negocios/${id}/members`); }
     async removeMember(negocioId, userId) { return this._request(`/negocios/${negocioId}/members/${userId}`, "DELETE"); }
+    async updateMemberRole(negocioId, userId, role) { return this._request(`/negocios/${negocioId}/members/${userId}`, "PATCH", { role }); }
 }
 
 export const api = new TwoBolsosAPI();
