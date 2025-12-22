@@ -27,3 +27,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Docker
+ssl/
+backup/
+*.pem
+*.crt
+*.key

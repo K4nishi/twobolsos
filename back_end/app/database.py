@@ -1,12 +1,13 @@
+import os
 from sqlmodel import SQLModel, create_engine, Session
 from typing import Generator
 
-# Switched to v2 database
-SQLITE_FILE_NAME = "twobolsos_v2.db"
-SQLITE_URL = f"sqlite:///{SQLITE_FILE_NAME}"
+# Database configuration - supports environment variable for Docker
+DATABASE_PATH = os.environ.get("DATABASE_PATH", "twobolsos_v2.db")
+SQLITE_URL = f"sqlite:///{DATABASE_PATH}"
 
 connect_args = {"check_same_thread": False}
-engine = create_engine(SQLITE_URL, connect_args=connect_args)
+engine = create_engine(SQLITE_URL, connect_args=connect_args, echo=False)
 
 def init_db():
     from app import models  # Ensure models are registered

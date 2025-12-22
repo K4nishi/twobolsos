@@ -1,0 +1,59 @@
+# =====================================================
+# TwoBolsos - Docker Compose Configuration
+# Production-ready setup with backend, frontend, and nginx
+# =====================================================
+
+services:
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./back_end
+      dockerfile: Dockerfile
+    container_name: twobolsos-backend
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_PATH=/app/data/twobolsos_v2.db
+    volumes:
+      # Persist database
+      - backend_data:/app/data
+      # Mount the database file if it exists (for migration)
+      - ./back_end/twobolsos_v2.db:/app/data/twobolsos_v2.db:rw
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - twobolsos-network
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./front_end
+      dockerfile: Dockerfile
+      args:
+        # Set the API URL for production - UPDATE THIS FOR YOUR SERVER
+        VITE_API_URL: ${API_URL:-http://localhost:8000}
+    container_name: twobolsos-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - twobolsos-network
+
+# Volumes for persistent data
+volumes:
+  backend_data:
+    driver: local
+
+# Network for service communication
+networks:
+  twobolsos-network:
+    driver: bridge

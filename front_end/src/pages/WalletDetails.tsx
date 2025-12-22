@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { getWsUrl } from '../config';
 import { KPI, Transacao, Negocio, ChartData } from '../types';
 import { ArrowLeft, ArrowUpCircle, ArrowDownCircle, Trash2, Users, MoreVertical, CalendarCheck, Filter, ChevronDown } from 'lucide-react';
 import { TransactionModal } from '../components/modals/TransactionModal';
@@ -57,9 +58,7 @@ export default function WalletDetails() {
         const userId = localStorage.getItem('user_id');
         if (!userId) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/${userId}`;
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(getWsUrl(userId));
 
         ws.onopen = () => setWsConnected(true);
         ws.onmessage = (event) => {

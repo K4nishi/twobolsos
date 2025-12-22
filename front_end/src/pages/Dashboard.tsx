@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { getWsUrl } from '../config';
 import { Negocio } from '../types';
 import { Plus, FolderInput, LogOut } from 'lucide-react';
 import { CreateWalletModal } from '../components/modals/CreateWalletModal';
@@ -30,7 +31,7 @@ export default function Dashboard() {
         const userId = localStorage.getItem('user_id');
         if (!userId) return;
 
-        const ws = new WebSocket(`ws://localhost:8000/ws/${userId}`);
+        const ws = new WebSocket(getWsUrl(userId));
 
         ws.onmessage = (event) => {
             if (event.data === 'UPDATE_LIST' || event.data.includes('UPDATE')) {

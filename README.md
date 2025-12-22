@@ -16,11 +16,12 @@
 4. [Sistema de Compartilhamento](#-sistema-de-compartilhamento-de-carteiras)
 5. [Instalação - Windows](#-instalação---windows)
 6. [Instalação - Linux/Mac](#-instalação---linuxmac)
-7. [Como Usar (Tutorial)](#-tutorial-de-uso)
-8. [Estrutura do Projeto](#-estrutura-do-projeto)
-9. [Tecnologias](#-tecnologias)
-10. [Roadmap](#-roadmap---futuras-implementações)
-11. [Contribuição](#-contribuição)
+7. [🐳 Instalação com Docker](#-instalação-com-docker)
+8. [Como Usar (Tutorial)](#-tutorial-de-uso)
+9. [Estrutura do Projeto](#-estrutura-do-projeto)
+10. [Tecnologias](#-tecnologias)
+11. [Roadmap](#-roadmap---futuras-implementações)
+12. [Contribuição](#-contribuição)
 
 ---
 
@@ -182,6 +183,99 @@ O script irá:
 Acesse: `http://localhost:5173`
 
 Para encerrar: pressione `CTRL+C`
+
+---
+
+## 🐳 Instalação com Docker
+
+A forma mais fácil de colocar o TwoBolsos em produção é usando Docker. Ideal para:
+- Servidores VPS (DigitalOcean, AWS, Azure, etc.)
+- Raspberry Pi
+- Qualquer máquina com Docker instalado
+
+### Pré-requisitos
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/) (geralmente já vem com Docker Desktop)
+
+### Deploy Rápido
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/K4nishi/TwoBolsos.git
+cd TwoBolsos
+
+# 2. Configure a URL da API (substitua pelo IP do seu servidor)
+# Edite o arquivo .env.example e renomeie para .env
+# ou crie diretamente:
+echo "API_URL=http://SEU_IP_DO_SERVIDOR:8000" > .env
+
+# 3. Execute o deploy
+./deploy.sh up     # Linux/Mac
+deploy.bat up      # Windows
+```
+
+### Comandos do Deploy Script
+
+| Comando | Descrição |
+|---------|-----------|
+| `./deploy.sh up` | Constrói e inicia os containers |
+| `./deploy.sh stop` | Para os containers |
+| `./deploy.sh restart` | Reinicia os containers |
+| `./deploy.sh logs` | Visualiza os logs em tempo real |
+| `./deploy.sh update` | Atualiza código e reconstrói |
+| `./deploy.sh status` | Mostra status dos containers |
+| `./deploy.sh clean` | Remove tudo (cuidado!) |
+
+### Deploy Manual com Docker Compose
+
+```bash
+# Construir e iniciar
+docker compose up -d --build
+
+# Verificar status
+docker compose ps
+
+# Ver logs
+docker compose logs -f
+
+# Parar
+docker compose down
+```
+
+### Configuração para Produção
+
+1. **Altere a URL da API** no arquivo `.env`:
+   ```
+   API_URL=http://seu-servidor.com:8000
+   ```
+
+2. **Para usar HTTPS** (recomendado), configure um proxy reverso com Nginx ou use o arquivo `docker-compose.prod.yml`
+
+3. **Portas utilizadas**:
+   - `80`: Frontend (React/Nginx)
+   - `8000`: Backend (FastAPI)
+
+### Persistência de Dados
+
+O banco de dados SQLite é salvo em um volume Docker chamado `backend_data`. Para backup:
+
+```bash
+# Copiar banco de dados do container
+docker cp twobolsos-backend:/app/data/twobolsos_v2.db ./backup/
+
+# Restaurar
+docker cp ./backup/twobolsos_v2.db twobolsos-backend:/app/data/
+```
+
+### Atualizando o Sistema
+
+Para atualizar quando houver novas versões:
+
+```bash
+# Puxa as últimas alterações e reconstrói
+git pull origin main
+./deploy.sh update
+```
 
 ---
 
