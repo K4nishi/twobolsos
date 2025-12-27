@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { getWsUrl } from '../config';
 import { Negocio } from '../types';
-import { Plus, FolderInput, LogOut, Wallet, Sun, Moon } from 'lucide-react';
+import { Plus, FolderInput, LogOut, Wallet } from 'lucide-react';
 import { CreateWalletModal } from '../components/modals/CreateWalletModal';
 import { JoinWalletModal } from '../components/modals/JoinWalletModal';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,6 @@ export default function Dashboard() {
     const [wallets, setWallets] = useState<Negocio[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-    const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
     useEffect(() => {
         loadWallets();
@@ -49,17 +48,6 @@ export default function Dashboard() {
         navigate('/login');
     }
 
-    function toggleTheme() {
-        const html = document.documentElement;
-        if (html.classList.contains('dark')) {
-            html.classList.remove('dark');
-            setIsDark(false);
-        } else {
-            html.classList.add('dark');
-            setIsDark(true);
-        }
-    }
-
     const openWallet = (id: number) => navigate(`/wallet/${id}`);
 
     return (
@@ -79,27 +67,19 @@ export default function Dashboard() {
 
                 {/* Header Mobile */}
                 <header className="mb-6">
-                    {/* Top row - Logo e Theme toggle */}
+                    {/* Top row - Logo e Logout */}
                     <div className="flex justify-between items-center mb-4">
                         <div>
                             <h1 className="text-xl sm:text-2xl font-bold dark:text-white text-zinc-900">Twobolsos</h1>
                             <p className="text-zinc-500 text-xs sm:text-sm">Gerencie suas finanças</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                            >
-                                {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                className="p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/10 transition-colors"
-                                title="Sair"
-                            >
-                                <LogOut size={18} />
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleLogout}
+                            className="p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/10 transition-colors"
+                            title="Sair"
+                        >
+                            <LogOut size={18} />
+                        </button>
                     </div>
 
                     {/* Action buttons - full width on mobile */}
