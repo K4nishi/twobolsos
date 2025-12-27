@@ -44,7 +44,7 @@ from app.models import User
 # IMPORTANTE: Em produção, use variáveis de ambiente!
 # Exemplo: SECRET_KEY = os.environ.get("SECRET_KEY")
 
-SECRET_KEY = "CHANGE_THIS_TO_A_SUPER_SECRET_KEY_IN_PROD"
+SECRET_KEY = "CHANGE_THIS_TO_A_SUPER_SECRET_KEY_IN_PROD "
 """
 Chave secreta para assinatura dos tokens JWT.
 NUNCA commite uma chave real no código!

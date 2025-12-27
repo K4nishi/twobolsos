@@ -40,8 +40,8 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-8">
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 overflow-x-hidden">
+            <div className="glass-card w-full max-w-md p-6 sm:p-8 rounded-2xl">
                 <div className="flex flex-col items-center mb-8">
                     <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4">
                         <LogIn className="w-8 h-8 text-blue-500" />
@@ -56,9 +56,10 @@ export default function Login() {
                         <input
                             value={username}
                             onChange={e => setUsername(e.target.value)}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                             placeholder="Seu usuário"
                             required
+                            autoComplete="username"
                         />
                     </div>
                     <div>
@@ -67,16 +68,21 @@ export default function Login() {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                             placeholder="••••••"
                             required
+                            autoComplete="current-password"
                         />
                     </div>
                     <button
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
                     >
-                        {loading ? 'Entrando...' : 'Entrar'}
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            'Entrar'
+                        )}
                     </button>
                 </form>
 

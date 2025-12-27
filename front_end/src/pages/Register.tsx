@@ -37,8 +37,8 @@ export default function Register() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="glass-card w-full max-w-md p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 overflow-x-hidden">
+            <div className="glass-card w-full max-w-md p-6 sm:p-8 rounded-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex flex-col items-center mb-8">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
                         <UserPlus className="w-8 h-8 text-green-500" />
@@ -53,9 +53,10 @@ export default function Register() {
                         <input
                             value={username}
                             onChange={e => setUsername(e.target.value)}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 transition-colors"
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
                             placeholder="Escolha um usuário"
                             required
+                            autoComplete="username"
                         />
                     </div>
                     <div>
@@ -64,10 +65,11 @@ export default function Register() {
                             type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 transition-colors"
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
                             placeholder="••••••"
                             required
                             minLength={4}
+                            autoComplete="new-password"
                         />
                     </div>
                     <div>
@@ -76,17 +78,22 @@ export default function Register() {
                             type="password"
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 transition-colors"
+                            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 text-zinc-900 dark:text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
                             placeholder="••••••"
                             required
                             minLength={4}
+                            autoComplete="new-password"
                         />
                     </div>
                     <button
                         disabled={loading}
-                        className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-green-500/20 disabled:opacity-50"
+                        className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-green-500/30 disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
                     >
-                        {loading ? 'Criando...' : 'Cadastrar'}
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            'Cadastrar'
+                        )}
                     </button>
                 </form>
                 <div className="mt-6 text-center">
