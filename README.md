@@ -2,9 +2,10 @@
 
 > **Substitua suas planilhas!** O TwoBolsos é um sistema de controle financeiro pessoal com atualizações em tempo real, perfeito para motoristas de aplicativo, famílias e freelancers.
 
-![Status](http://img.shields.io/static/v1?label=STATUS&message=EM%20DESENVOLVIMENTO&color=yellow&style=for-the-badge)
+![Status](http://img.shields.io/static/v1?label=STATUS&message=PRODUÇÃO&color=green&style=for-the-badge)
 ![Backend](http://img.shields.io/static/v1?label=Backend&message=FastAPI&color=009688&style=for-the-badge)
 ![Frontend](http://img.shields.io/static/v1?label=Frontend&message=React&color=61DAFB&style=for-the-badge)
+![Cloud](http://img.shields.io/static/v1?label=Deploy&message=SquareCloud&color=5865F2&style=for-the-badge)
 
 ---
 
@@ -14,14 +15,16 @@
 2. [Para quem é?](#-para-quem-é)
 3. [Funcionalidades](#-funcionalidades)
 4. [Sistema de Compartilhamento](#-sistema-de-compartilhamento-de-carteiras)
-5. [Instalação - Windows](#-instalação---windows)
-6. [Instalação - Linux/Mac](#-instalação---linuxmac)
-7. [🐳 Instalação com Docker](#-instalação-com-docker)
-8. [Como Usar (Tutorial)](#-tutorial-de-uso)
-9. [Estrutura do Projeto](#-estrutura-do-projeto)
-10. [Tecnologias](#-tecnologias)
-11. [Roadmap](#-roadmap---futuras-implementações)
-12. [Contribuição](#-contribuição)
+5. [🚀 Deploy na Square Cloud](#-deploy-na-square-cloud)
+6. [Instalação Local - Windows](#️-instalação-local---windows)
+7. [Instalação Local - Linux/Mac](#-instalação-local---linuxmac)
+8. [🐳 Deploy com Docker](#-deploy-com-docker)
+9. [Como Usar (Tutorial)](#-tutorial-de-uso)
+10. [📚 Documentação da API](#-documentação-da-api)
+11. [Estrutura do Projeto](#-estrutura-do-projeto)
+12. [Tecnologias](#️-tecnologias)
+13. [Roadmap](#-roadmap---futuras-implementações)
+14. [Contribuição](#-contribuição)
 
 ---
 
@@ -119,7 +122,94 @@ Uma das principais funcionalidades do TwoBolsos é o **compartilhamento em tempo
 
 ---
 
-## 🖥️ Instalação - Windows
+## 🚀 Deploy na Square Cloud
+
+### Método 1: Import Direto do GitHub (Recomendado)
+
+O TwoBolsos já está configurado para deploy direto do GitHub na Square Cloud!
+
+#### Pré-requisitos
+- Conta na [Square Cloud](https://squarecloud.app)
+- Repositório no GitHub com o código
+
+#### Passo a Passo
+
+1. **Acesse o Dashboard da Square Cloud**
+   - Vá para [squarecloud.app/dashboard](https://squarecloud.app/dashboard)
+
+2. **Clique em "Add Application"**
+
+3. **Selecione "Import from GitHub"**
+
+4. **Autorize o acesso ao seu repositório**
+
+5. **Selecione o repositório TwoBolsos**
+
+6. **Aguarde o deploy automático**
+   - A Square Cloud detecta automaticamente o arquivo `squarecloud.app`
+   - Instala as dependências do `requirements.txt`
+   - Inicia o servidor
+
+7. **Acesse sua aplicação**
+   - URL padrão: `https://twobolsos.squareweb.app`
+   - Ou configure um domínio personalizado
+
+### Arquivo de Configuração (`squarecloud.app`)
+
+O projeto já inclui o arquivo de configuração:
+
+```ini
+DISPLAYNAME=TwoBolsos API
+MAIN=back_end/app/main.py
+MEMORY=1024
+VERSION=recommended
+DESCRIPTION=Sistema de gestão financeira pessoal com WebSocket
+START=uvicorn back_end.app.main:app --host 0.0.0.0 --port 80
+SUBDOMAIN=twobolsos
+AUTORESTART=true
+```
+
+### Configurações Explicadas
+
+| Parâmetro | Valor | Descrição |
+|-----------|-------|-----------|
+| `DISPLAYNAME` | TwoBolsos API | Nome exibido no painel |
+| `MAIN` | back_end/app/main.py | Arquivo principal da aplicação |
+| `MEMORY` | 1024 | Memória em MB (1GB para o plano de R$7) |
+| `VERSION` | recommended | Versão do Python (automática) |
+| `START` | uvicorn... | Comando para iniciar o servidor |
+| `SUBDOMAIN` | twobolsos | Subdomínio (twobolsos.squareweb.app) |
+| `AUTORESTART` | true | Reinicia automaticamente se cair |
+
+### Configuração de Webhook (Deploy Automático)
+
+Para deploys automáticos quando fizer push:
+
+1. No Dashboard Square Cloud, copie a URL do Webhook
+
+2. No GitHub, vá em Settings → Webhooks → Add webhook
+
+3. Cole a URL do webhook
+
+4. Selecione "application/json"
+
+5. Pronto! Cada push fará deploy automático
+
+### Variáveis de Ambiente
+
+Se precisar configurar variáveis (recomendado para produção):
+
+1. No Dashboard Square Cloud, vá em Settings
+
+2. Adicione as variáveis:
+   ```
+   SECRET_KEY=sua_chave_super_secreta_aqui
+   DATABASE_PATH=/app/data/twobolsos.db
+   ```
+
+---
+
+## 🖥️ Instalação Local - Windows
 
 ### Pré-requisitos
 - [Python 3.10+](https://www.python.org/downloads/) (marque "Add to PATH" durante instalação)
@@ -138,7 +228,7 @@ python -m venv venv
 .\venv\Scripts\activate
 
 # 3. Instale as dependências do Backend
-pip install -r requirements.txt
+pip install -r back_end/requirements.txt
 
 # 4. Instale as dependências do Frontend
 cd front_end
@@ -153,7 +243,7 @@ O navegador abrirá automaticamente em `http://localhost:5173`
 
 ---
 
-## 🐧 Instalação - Linux/Mac
+## 🐧 Instalação Local - Linux/Mac
 
 ### Pré-requisitos
 - Python 3.10+ (`python3 --version`)
@@ -186,16 +276,13 @@ Para encerrar: pressione `CTRL+C`
 
 ---
 
-## 🐳 Instalação com Docker
+## 🐳 Deploy com Docker
 
-A forma mais fácil de colocar o TwoBolsos em produção é usando Docker. Ideal para:
-- Servidores VPS (DigitalOcean, AWS, Azure, etc.)
-- Raspberry Pi
-- Qualquer máquina com Docker instalado
+A forma tradicional de colocar o TwoBolsos em produção usando Docker.
 
 ### Pré-requisitos
 - [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/) (geralmente já vem com Docker Desktop)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 ### Deploy Rápido
 
@@ -204,9 +291,7 @@ A forma mais fácil de colocar o TwoBolsos em produção é usando Docker. Ideal
 git clone https://github.com/K4nishi/TwoBolsos.git
 cd TwoBolsos
 
-# 2. Configure a URL da API (substitua pelo IP do seu servidor)
-# Edite o arquivo .env.example e renomeie para .env
-# ou crie diretamente:
+# 2. Configure a URL da API
 echo "API_URL=http://SEU_IP_DO_SERVIDOR:8000" > .env
 
 # 3. Execute o deploy
@@ -226,64 +311,13 @@ deploy.bat up      # Windows
 | `./deploy.sh status` | Mostra status dos containers |
 | `./deploy.sh clean` | Remove tudo (cuidado!) |
 
-### Deploy Manual com Docker Compose
-
-```bash
-# Construir e iniciar
-docker compose up -d --build
-
-# Verificar status
-docker compose ps
-
-# Ver logs
-docker compose logs -f
-
-# Parar
-docker compose down
-```
-
-### Configuração para Produção
-
-1. **Altere a URL da API** no arquivo `.env`:
-   ```
-   API_URL=http://seu-servidor.com:8000
-   ```
-
-2. **Para usar HTTPS** (recomendado), configure um proxy reverso com Nginx ou use o arquivo `docker-compose.prod.yml`
-
-3. **Portas utilizadas**:
-   - `80`: Frontend (React/Nginx)
-   - `8000`: Backend (FastAPI)
-
-### Persistência de Dados
-
-O banco de dados SQLite é salvo em um volume Docker chamado `backend_data`. Para backup:
-
-```bash
-# Copiar banco de dados do container
-docker cp twobolsos-backend:/app/data/twobolsos_v2.db ./backup/
-
-# Restaurar
-docker cp ./backup/twobolsos_v2.db twobolsos-backend:/app/data/
-```
-
-### Atualizando o Sistema
-
-Para atualizar quando houver novas versões:
-
-```bash
-# Puxa as últimas alterações e reconstrói
-git pull origin main
-./deploy.sh update
-```
-
 ---
 
 ## 📚 Tutorial de Uso
 
 ### 1️⃣ Criar uma Conta
 
-1. Acesse `http://localhost:5173`
+1. Acesse a aplicação
 2. Clique em "**Não tem conta? Crie uma agora**"
 3. Preencha: usuário, email e senha
 4. Clique em "**Criar Conta**"
@@ -325,9 +359,67 @@ git pull origin main
 
 Se a carteira for do tipo MOTORISTA:
 1. Um painel extra aparece com estatísticas
-2. Clique em "**Fechar KM**"
-3. Digite a quilometragem atual do veículo
-4. O sistema calcula automaticamente a distância percorrida
+2. Ao adicionar transações, preencha os campos de KM e Litros
+3. O sistema calcula automaticamente a autonomia
+
+---
+
+## 📚 Documentação da API
+
+### Swagger UI (Interativo)
+Após iniciar o backend, acesse:
+```
+http://localhost:8000/docs
+```
+
+### ReDoc (Alternativo)
+```
+http://localhost:8000/redoc
+```
+
+### Endpoints Principais
+
+#### Autenticação
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/auth/register` | Criar nova conta |
+| POST | `/auth/token` | Login (retorna JWT) |
+
+#### Carteiras
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/negocios` | Listar carteiras |
+| POST | `/negocios` | Criar carteira |
+| DELETE | `/negocios/{id}` | Deletar carteira |
+| GET | `/negocios/{id}/dashboard` | Dados completos da carteira |
+
+#### Compartilhamento
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/negocios/{id}/invite` | Gerar código de convite |
+| POST | `/negocios/join?code=XXXXXX` | Entrar com código |
+| GET | `/negocios/{id}/members` | Listar membros |
+| PATCH | `/negocios/{id}/members/{uid}` | Alterar permissão |
+| DELETE | `/negocios/{id}/members/{uid}` | Remover membro |
+
+#### Transações
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/transacoes` | Criar transação |
+| DELETE | `/transacoes/{id}` | Deletar transação |
+
+#### Despesas Fixas
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/negocios/{id}/fixas` | Listar fixas |
+| POST | `/negocios/{id}/fixas` | Criar fixa |
+| POST | `/negocios/{id}/fixas/{fid}/pagar` | Pagar fixa do mês |
+| DELETE | `/negocios/{id}/fixas/{fid}` | Deletar fixa |
+
+#### WebSocket
+| Endpoint | Descrição |
+|----------|-----------|
+| `ws://URL/ws/{user_id}` | Conexão para tempo real |
 
 ---
 
@@ -335,6 +427,7 @@ Se a carteira for do tipo MOTORISTA:
 
 ```
 TwoBolsos/
+├── squarecloud.app              # ⭐ Config do Square Cloud
 ├── back_end/                    # API Python/FastAPI
 │   ├── app/
 │   │   ├── main.py              # Entrada da aplicação
@@ -348,6 +441,8 @@ TwoBolsos/
 │   │   │   └── fixas.py         # Despesas fixas
 │   │   └── realtime/
 │   │       └── manager.py       # WebSocket
+│   ├── requirements.txt         # Dependências Python
+│   ├── Dockerfile               # Container do backend
 │   └── twobolsos.db             # Banco SQLite (gerado)
 │
 ├── front_end/                   # Interface React
@@ -357,14 +452,14 @@ TwoBolsos/
 │   │   ├── context/             # Estados globais
 │   │   ├── services/            # Conexão com API
 │   │   └── types/               # Tipos TypeScript
-│   ├── index.html
-│   └── package.json
+│   ├── package.json             # Dependências Node
+│   └── Dockerfile               # Container do frontend
 │
+├── docker-compose.yml           # Orquestração Docker
 ├── start_dev.bat                # Script Windows
 ├── start_dev.sh                 # Script Linux/Mac
-├── requirements.txt             # Dependências Python
-├── .gitignore
-└── README.md
+├── deploy.sh                    # Script de deploy
+└── README.md                    # Este arquivo
 ```
 
 ---
@@ -380,16 +475,26 @@ TwoBolsos/
 | SQLite | Banco de dados local |
 | WebSockets | Comunicação em tempo real |
 | JWT | Autenticação segura |
+| Uvicorn | Servidor ASGI |
 
 ### Frontend
 | Tecnologia | Uso |
 |------------|-----|
-| React 18 | Biblioteca de interfaces |
+| React 19 | Biblioteca de interfaces |
 | TypeScript | JavaScript com tipagem |
 | Vite | Build tool ultrarrápido |
-| Chart.js | Gráficos |
+| TailwindCSS | Estilização utilitária |
+| Chart.js | Gráficos interativos |
 | Axios | Requisições HTTP |
+| Framer Motion | Animações |
 | Lucide Icons | Ícones |
+
+### Infraestrutura
+| Tecnologia | Uso |
+|------------|-----|
+| Square Cloud | Hospedagem principal |
+| Docker | Containerização |
+| Nginx | Proxy reverso (Docker) |
 
 ---
 

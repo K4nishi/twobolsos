@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+# dist  <- COMENTADO: Build deve ir pro repositório (Square Cloud)
 dist-ssr
 *.local
 
