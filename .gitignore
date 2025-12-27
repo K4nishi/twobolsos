@@ -11,8 +11,8 @@ __pycache__/
 
 # Node.js
 node_modules/
-dist/
-build/
+# dist/ - REMOVIDO: precisamos do build no deploy
+# build/
 
 # IDE
 .idea/
