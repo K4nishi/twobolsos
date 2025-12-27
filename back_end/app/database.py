@@ -27,6 +27,7 @@ Versão: 3.0.0
 
 import os
 from typing import Generator
+from pathlib import Path
 
 from sqlmodel import SQLModel, create_engine, Session
 
@@ -35,15 +36,30 @@ from sqlmodel import SQLModel, create_engine, Session
 # CONFIGURAÇÃO DO BANCO DE DADOS
 # ============================================================
 
-DATABASE_PATH = os.environ.get("DATABASE_PATH", "twobolsos_v2.db")
+# Detecta ambiente Square Cloud (pasta /data existe)
+SQUARECLOUD_DATA_PATH = Path("/data")
+IS_SQUARECLOUD = SQUARECLOUD_DATA_PATH.exists()
+
+# Define o caminho do banco de dados
+if os.environ.get("DATABASE_PATH"):
+    # Prioridade para variável de ambiente
+    DATABASE_PATH = os.environ.get("DATABASE_PATH")
+elif IS_SQUARECLOUD:
+    # Square Cloud: usar pasta /data para persistência
+    DATABASE_PATH = "/data/twobolsos_v2.db"
+else:
+    # Desenvolvimento local
+    DATABASE_PATH = "twobolsos_v2.db"
+
 """
 Caminho para o arquivo do banco de dados SQLite.
-Pode ser configurado via variável de ambiente para Docker/produção.
-Padrão: 'twobolsos_v2.db' (diretório atual)
+- Em produção (Square Cloud): /data/twobolsos_v2.db (persiste entre deploys)
+- Em desenvolvimento: ./twobolsos_v2.db (diretório atual)
 """
 
 SQLITE_URL = f"sqlite:///{DATABASE_PATH}"
 """URL de conexão SQLite no formato SQLAlchemy."""
+
 
 
 # ============================================================
